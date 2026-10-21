@@ -4,20 +4,20 @@
 
 ---
 
-## 💡 ĐIỂM KẾT HỢP VỚI KHO SKILL .AGENTS
+## 🧭 DANH SÁCH 8 SKILL CON TÍCH HỢP TRONG HỆ SINH THÁI
 
-StoryFlow tích hợp trực tiếp các thế mạnh kỹ thuật từ kho `.agents` vào luồng sáng tác:
+Khi bạn cài đặt repository này qua `npx skills add 7binh/svb-story`, bạn sẽ sở hữu trọn bộ 8 skill con tương ứng với 8 lệnh slash command chuyên biệt:
 
-1. **Bộ lọc khử văn mẫu AI & Chuẩn hóa dấu câu (Quality Gate):**
-   - Tích hợp trực tiếp `scripts/normalize-punctuation.js` và `scripts/check-ai-patterns.js`.
-   - Lệnh kiểm tra trước khi lưu: `python manage_story.py check`.
-2. **Dashboard Trực Quan (Web UI):**
-   - Tích hợp `scripts/dashboard-server.mjs` và thư mục `assets/`.
-   - Lệnh mở giao diện Web quản lý truyện: `python manage_story.py dashboard`.
-3. **Kho công thức thể loại (Genre Formulas):**
-   - Tích hợp toàn bộ thư mục `references/genre-styles/` (Huyền huyễn, Đô thị, Trinh thám, Kinh dị...).
-4. **Hệ sinh thái vệ tinh kế thừa:**
-   - Hỗ trợ tương tác với các skill vệ tinh: `story-review` (thẩm định đa vai), `story-cover` (tạo bìa truyện), `story-scan` (quét đề tài hot), `story-import` (nhập truyện cũ).
+| Lệnh Slash Command | Tên Skill | Chức Năng Chính |
+|---|---|---|
+| `/story` | `story` | **Trạm điều phối trung tâm (Router)**: Điều hướng yêu cầu, chuyển đổi tác phẩm, khởi chạy Web Dashboard. |
+| `/story-write` | `story-write` | **Quy trình viết chính**: Vòng lặp 5 bước (context -> nháp draft.md -> check -> save). |
+| `/story-outline` | `story-outline` | **Đề cương & Phục bút**: Hoạch định Arc, gợi ý 3 nhánh rẽ cốt truyện khi bí ý, theo dõi manh mối. |
+| `/story-deslop` | `story-deslop` | **Khử văn mẫu AI**: Loại bỏ câu từ sáo rỗng, áp dụng Show-Don't-Tell và chiều sâu giác quan. |
+| `/story-review` | `story-review` | **Thẩm định phản biện đa góc nhìn**: 3 vai độc giả khó tính soát lỗi Logic, Nhịp điệu, Nhân vật. |
+| `/story-cover` | `story-cover` | **Thiết kế ảnh bìa AI**: Tự động tạo prompt sinh ảnh bìa chuyên nghiệp từ thông số truyện. |
+| `/story-import` | `story-import` | **Nhập bản thảo cũ**: Tự động phân rã file truyện cũ nhiều chương vào cấu trúc chuẩn đa tác phẩm. |
+| `/story-flow` | `story-flow` | **Toàn trình hợp nhất**: Vòng lặp sáng tác tổng quát kết hợp cả quản lý và viết. |
 
 ---
 
