@@ -1,0 +1,7 @@
+# StoryFlow Git Ignore
+__pycache__/
+*.py[cod]
+*$py.class
+active_story.json
+.DS_Store
+Thumbs.db
