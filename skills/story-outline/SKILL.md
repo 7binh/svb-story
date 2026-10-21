@@ -29,25 +29,26 @@ Chuyên trách việc hoạch định mạch truyện, đề xuất ý tưởng 
 
 ---
 
-## 🔀 2. GỢI Ý 3 NHÁNH RẼ KHI BÍ Ý TƯỞNG (PLOT BRANCHING)
+## 🔀 2. GỢI Ý 3 NHÁNH RẼ KHI BÍ Ý TƯỞNG (PLOT BRANCHING & MEMORY SYNC)
 
-Khi tác giả yêu cầu gợi ý tình tiết tiếp theo, AI mở tài liệu [../../references/plot-branching.md](../../references/plot-branching.md) và đề xuất chính xác **3 nhánh rẽ**:
+Khi tác giả yêu cầu gợi ý tình tiết tiếp theo, AI đối chiếu dữ kiện từ Narrative Memory (`events.json`, `knowledge.json`) và đề xuất chính xác **3 nhánh rẽ** dựa trên [../../references/plot-branching.md](../../references/plot-branching.md):
 
-1. **Nhánh A (Action & Escalation):** Đẩy cao xung đột ngay lập tức, nguy cơ ập đến bất ngờ, đối đầu trực diện.
-2. **Nhánh B (Emotion & Depth):** Giãn nhịp (Slow-burn), đào sâu nội tâm, đối thoại riêng tư, phát triển quan hệ nhân vật.
-3. **Nhánh C (Twist & Revelation):** Kích hoạt phục bút cũ, lật mở bí mật hoặc danh tính giả, tạo bước ngoặt bất ngờ.
+1. **Nhánh A (Action & Escalation):** Đẩy cao xung đột ngay lập tức, kích hoạt các mối thù trong Canon, đối đầu trực diện.
+2. **Nhánh B (Emotion & Depth):** Giãn nhịp (Slow-burn), khai thác chấn thương thể chất/tâm lý, mâu thuẫn niềm tin (Belief vs Truth) của nhân vật.
+3. **Nhánh C (Twist & Revelation):** Kích hoạt phục bút cũ hoặc lật mở một phần bí mật (`secrets`) đã đến điều kiện tiết lộ.
 
 *AI chỉ chấp bút sau khi tác giả chọn hoặc kết hợp các nhánh.*
 
 ---
 
-## 🔍 3. SỔ THEO DÕI PHỤC BÚT & MANH MỐI (FORESHADOWING)
+## 🔍 3. SỔ THEO DÕI PHỤC BÚT & BÍ MẬT (FORESHADOWING & SECRETS)
 
-Lưu tại `stories/<active_story_id>/summaries/foreshadow.json`.
+Lưu tại `stories/<active_story_id>/summaries/foreshadow.json` và `memory/knowledge.json`.
 
-- **Xem danh sách phục bút:**
+- **Xem danh sách phục bút & bí mật:**
   ```powershell
   python manage_story.py foreshadow
+  python manage_story.py memory --secrets
   ```
 - **Ghi nhận manh mối mới (Dòng 1 `draft.md`):**
   ```markdown
@@ -59,4 +60,4 @@ Lưu tại `stories/<active_story_id>/summaries/foreshadow.json`.
   /story-foreshadow --clue "Bức thư màu đen" --resolve --chapter 15
   Lâm Phong đã mở bức thư và biết bí mật huyết mạch gia tộc.
   ```
-*Mọi phục bút chưa giải sẽ được lệnh `context` tự động liệt kê nhắc nhở trước mỗi chương.*
+*Mọi phục bút chưa giải và ma trận bí mật sẽ được lệnh `python manage_story.py context` tự động tổng hợp nhắc nhở trước mỗi chương.*

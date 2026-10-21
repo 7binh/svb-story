@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="vi">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#faf5ea" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#081431" media="(prefers-color-scheme: dark)">
-    <title>OH STORY · 本地写作工作台</title>
+    <title>StoryFlow · Bàn Làm Việc Sáng Tác</title>
     <link rel="stylesheet" href="/tokens.css">
     <link rel="stylesheet" href="/styles.css">
   </head>
@@ -15,11 +15,11 @@
 
     <div class="app-shell">
       <header class="masthead">
-        <div class="brand-lockup" aria-label="OH STORY 本地写作工作台">
+        <div class="brand-lockup" aria-label="StoryFlow Bàn Làm Việc Sáng Tác">
           <span class="zs-mark" aria-hidden="true">文</span>
           <span class="brand-copy">
-            <strong>OH STORY</strong>
-            <small>写作台</small>
+            <strong>StoryFlow</strong>
+            <small>Bàn Sáng Tác</small>
           </span>
         </div>
 
@@ -28,28 +28,28 @@
             <path d="M3.5 6.5h6l2 2h9v10h-17z"></path>
           </svg>
           <span class="workspace-copy">
-            <strong id="workspaceName">正在辨认书架…</strong>
+            <strong id="workspaceName">Đang nhận diện tác phẩm…</strong>
             <span id="workspacePath" class="workspace-path"></span>
           </span>
         </div>
 
         <div class="masthead-actions">
           <div class="workspace-summary" aria-label="工作区统计">
-            <span><b id="libraryCount">—</b> 拆文库</span>
-            <span><b id="projectCount">—</b> 项目</span>
-            <span><b id="fileCount">—</b> 文稿</span>
+            <span><b id="libraryCount">—</b> Thư viện</span>
+            <span><b id="projectCount">—</b> Truyện</span>
+            <span><b id="fileCount">—</b> Bản thảo</span>
           </div>
           <div id="connectionStatus" class="connection-status" role="status">
             <span class="status-dot" aria-hidden="true"></span>
-            <span>连接中</span>
+            <span>Đang kết nối</span>
           </div>
-          <button id="refreshButton" class="icon-button" type="button" title="刷新工作区" aria-label="刷新工作区">
+          <button id="refreshButton" class="icon-button" type="button" title="Làm mới không gian làm việc" aria-label="Làm mới không gian làm việc">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M20 6v5h-5"></path>
               <path d="M18.2 15.7A7 7 0 1 1 19 9.3L20 11"></path>
             </svg>
           </button>
-          <button id="themeButton" class="icon-button theme-button" type="button" title="切换明暗" aria-label="切换明暗">
+          <button id="themeButton" class="icon-button theme-button" type="button" title="Chuyển chế độ sáng/tối" aria-label="Chuyển chế độ sáng/tối">
             <svg class="theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z"></path>
             </svg>
@@ -63,14 +63,14 @@
 
       <main class="desk">
         <aside class="archive-panel" aria-labelledby="archiveTitle">
-          <h1 id="archiveTitle" class="sr-only">工作区文件</h1>
+          <h1 id="archiveTitle" class="sr-only">Tập tin không gian làm việc</h1>
 
           <div class="archive-tabs" role="tablist" aria-label="工作区内容">
             <button id="librariesTab" type="button" role="tab" aria-selected="true" aria-controls="treePanel" data-view="libraries">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 5.5h6l2 2h8v11H4z"></path>
               </svg>
-              <span>拆文库</span>
+              <span>Thư viện mẫu</span>
               <b id="librariesBadge">0</b>
             </button>
             <button id="projectsTab" type="button" role="tab" aria-selected="false" aria-controls="treePanel" data-view="projects">
@@ -78,7 +78,7 @@
                 <path d="M5 4.5h14v15H5z"></path>
                 <path d="M8 8h8M8 12h8M8 16h5"></path>
               </svg>
-              <span>写作项目</span>
+              <span>Dự án truyện</span>
               <b id="projectsBadge">0</b>
             </button>
           </div>
@@ -89,21 +89,21 @@
               <path d="m16 16 4 4"></path>
             </svg>
             <span class="sr-only">搜索文件名</span>
-            <input id="treeSearch" type="search" autocomplete="off" placeholder="搜索文件、角色或章节">
+            <input id="treeSearch" type="search" autocomplete="off" placeholder="Tìm kiếm file, nhân vật hoặc chương...">
             <kbd>⌘K</kbd>
           </label>
 
           <div id="treePanel" class="tree-panel" role="tabpanel" aria-labelledby="librariesTab">
             <div id="treeLoading" class="tree-message">
               <span class="loading-mark" aria-hidden="true"></span>
-              <p>正在整理案卷…</p>
+              <p>Đang tải danh mục tập tin…</p>
             </div>
             <div id="fileTree" class="file-tree" aria-label="文件树"></div>
           </div>
 
           <footer class="archive-note">
             <span class="status-dot" aria-hidden="true"></span>
-            <p>本地工作区 · 文稿不会上传</p>
+            <p>Không gian làm việc cục bộ · Dữ liệu bảo mật tuyệt đối</p>
           </footer>
         </aside>
 
@@ -116,11 +116,11 @@
                   <path d="M31 7v7h6M18 21h13M18 27h13M18 33h9"></path>
                 </svg>
               </div>
-              <h2>选择一份文稿开始工作</h2>
-              <p>从左侧打开 Markdown、TXT 或配置文本，直接阅读、校订并保存。</p>
+              <h2>Chọn một văn bản để bắt đầu làm việc</h2>
+              <p>Mở file Markdown, TXT hoặc cấu hình JSON từ danh mục bên trái để đọc, duyệt và chỉnh sửa.</p>
               <div class="empty-shortcuts">
-                <span><kbd>⌘K</kbd> 搜索</span>
-                <span><kbd>⌘S</kbd> 保存</span>
+                <span><kbd>⌘K</kbd> Tìm kiếm</span>
+                <span><kbd>⌘S</kbd> Lưu trữ</span>
               </div>
             </div>
           </div>
@@ -131,12 +131,12 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="m15 5-7 7 7 7"></path>
                 </svg>
-                <span>文件</span>
+                <span>Tập tin</span>
               </button>
               <div class="document-identity">
                 <nav id="breadcrumbs" class="breadcrumbs" aria-label="文件路径"></nav>
                 <div class="document-title-row">
-                  <h2 id="editorTitle">未命名文稿</h2>
+                  <h2 id="editorTitle">Văn bản chưa đặt tên</h2>
                 </div>
               </div>
 

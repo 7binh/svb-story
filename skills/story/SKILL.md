@@ -11,12 +11,14 @@ description: "Trạm điều phối trung tâm cho hệ sinh thái viết truy�
 
 ## 🧭 BẢNG ĐIỀU HƯỚNG TỔNG QUAN
 
-| Nhu cầu của bạn | Lệnh kích hoạt trực tiếp | Chức năng chính |
+| Nhu cầu của bạn | Lệnh kích hoạt | Chức năng chính |
 |---|---|---|
-| **Viết chương mới / Mở rộng nháp** | `/story-write` (hoặc `/story-flow`) | Vòng lặp 5 bước: context -> viết nháp -> check -> save. |
-| **Học & Giải mã văn phong truyện mẫu** | `/story-study` | Phân tích 5 trục từ file, thư mục hoặc dán nháp; tạo Style Fingerprint & Rules. |
-| **Lập đề cương / Gợi ý rẽ nhánh / Phục bút** | `/story-outline` | Quản lý mục tiêu từng Arc, gợi ý 3 nhánh rẽ, theo dõi manh mối. |
-| **Khử văn mẫu AI / Chuẩn hóa câu từ** | `/story-deslop` | Lọc bỏ từ ngữ sáo rỗng, áp dụng Show-Don't-Tell và chiều sâu giác quan. |
+| **Viết chương mới tương tác từng bước** | `/story-write` | Viết từng chương có kiểm duyệt: context -> soạn nháp -> check -> save. |
+| **Điều phối toàn trình tự hành (Orchestrator)** | `/story-flow` | Chu trình toàn trình khép kín cho AI Agent: context -> draft -> quality gate -> save. |
+| **Học & Giải mã văn phong truyện mẫu** | `/story-study` | Phân tích 5 trục từ file, thư mục hoặc dán nháp; tạo Style Profile (story & global). |
+| **Truy vấn bộ nhớ & Canon truyện** | `python manage_story.py memory` | Quản lý trục thời gian (timeline), trạng thái tiến trình nhân vật, ma trận bí mật và kiểm định continuity. |
+| **Lập đề cương / Gợi ý rẽ nhánh / Phục bút** | `/story-outline` | Quản lý mục tiêu từng Arc, gợi ý 3 nhánh rẽ (Action/Emotion/Twist), theo dõi manh mối. |
+| **Khử văn mẫu AI / Chuẩn hóa câu từ** | `/story-deslop` | Lọc bỏ từ ngữ sáo rỗng qua `vn_checker`, áp dụng Show-Don't-Tell và chiều sâu giác quan. |
 | **Thẩm định phản biện đa góc nhìn** | `/story-review` | Soát lỗi logic bối cảnh, nhịp điệu (pacing) và tính cách nhân vật (OOC). |
 | **Thiết kế ảnh bìa tiểu thuyết AI** | `/story-cover` | Tự động tạo prompt sinh ảnh bìa chuyên nghiệp từ metadata truyện. |
 | **Nhập bản thảo cũ vào hệ thống** | `/story-import` | Phân rã file truyện cũ nhiều chương vào cấu trúc đa tác phẩm. |
@@ -30,3 +32,6 @@ description: "Trạm điều phối trung tâm cho hệ sinh thái viết truy�
 - **Chọn bộ truyện làm việc:** `python manage_story.py select --id <slug>`
 - **Khởi tạo truyện mới:** `python manage_story.py init --title "Tên Truyện" --author "Tác Giả" --genre "Thể Loại"`
 - **Kiểm tra tiến độ & tình trạng:** `python manage_story.py status`
+- **Truy vấn bộ nhớ truyện & Canon:** `python manage_story.py memory --timeline` hoặc `python manage_story.py memory --audit`
+- **Tóm tắt mốc nhiều chương:** `python manage_story.py append-summary --from 1 --to 10 --text "..."`
+- **Quản lý văn phong:** `python manage_story.py style --list`

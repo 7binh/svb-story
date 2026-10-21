@@ -22,6 +22,8 @@ import { createHash, randomUUID } from "node:crypto";
 const MODULE_PATH = fileURLToPath(import.meta.url);
 const ASSET_DIR = fileURLToPath(new URL("../assets/", import.meta.url));
 const EDITABLE_EXTENSIONS = new Set([".md", ".txt", ".json", ".yaml", ".yml", ".toml"]);
+const STORYFLOW_PROJECT_MARKERS = new Set(["chapters", "summaries"]);
+const STORYFLOW_PROJECT_FILES = new Set(["story_config.json", "story.json"]);
 const LONG_PROJECT_DIRECTORY_MARKERS = new Set(["正文", "大纲", "设定", "追踪"]);
 const SHORT_PROJECT_BODY_FILE = "正文.md";
 const SHORT_PROJECT_COMPANION_FILES = new Set(["小节大纲.md", "设定.md"]);
@@ -302,6 +304,13 @@ export async function listWorkspaceDirectory(root, requestedPath, cursorValue = 
 
 async function listLibraryRoots(root, scanErrors) {
   const roots = [];
+  for (const lib of ["style_library", "references"]) {
+    const libRoot = resolve(root, lib);
+    const libInfo = await lstat(libRoot).catch(() => null);
+    if (libInfo?.isDirectory() && !libInfo.isSymbolicLink()) {
+      roots.push({ absolutePath: libRoot, relativePath: lib });
+    }
+  }
   const standardRoot = resolve(root, "拆文库");
   const standardInfo = await lstat(standardRoot).catch(() => null);
   if (standardInfo?.isDirectory() && !standardInfo.isSymbolicLink()) {
@@ -367,13 +376,16 @@ async function findProjectRoots(
   const childFileNames = new Set(
     entries.filter((entry) => entry.isFile() && !entry.isSymbolicLink()).map((entry) => entry.name),
   );
+  const isStoryFlowProject =
+    [...STORYFLOW_PROJECT_MARKERS].some((marker) => childDirectoryNames.has(marker)) ||
+    [...STORYFLOW_PROJECT_FILES].some((marker) => childFileNames.has(marker));
   const isLongProject = [...LONG_PROJECT_DIRECTORY_MARKERS].some((marker) =>
     childDirectoryNames.has(marker),
   );
   const isShortProject =
     childFileNames.has(SHORT_PROJECT_BODY_FILE) &&
     [...SHORT_PROJECT_COMPANION_FILES].some((marker) => childFileNames.has(marker));
-  if (isLongProject || isShortProject) {
+  if (isStoryFlowProject || isLongProject || isShortProject) {
     projects.push({
       absolutePath: currentPath,
       relativePath: relative(root, currentPath),

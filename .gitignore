@@ -3,5 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 active_story.json
+*.tmp.*
+**/.draft_backups/
 .DS_Store
 Thumbs.db

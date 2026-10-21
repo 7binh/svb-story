@@ -11,14 +11,18 @@ description: "Thẩm định phản biện đối kháng đa vai sau khi viết 
 
 ## 🎭 3 VAI THẨM ĐỊNH ĐỐI KHÁNG
 
-Khi nhận lệnh `/story-review`, AI tiến hành thẩm định lần lượt theo 3 trục độc lập:
+Khi nhận lệnh `/story-review`, AI tiến hành thẩm định độc lập qua 3 lăng kính chuyên môn kết hợp chạy lệnh kiểm định tự động:
+```powershell
+python manage_story.py memory --audit
+```
 
-### 1. Vai 1: Chuyên Gia Logic & Tính Nhất Quán (Logic & Lore Reviewer)
-- **Nhiệm vụ:** Đối chiếu nội dung chương với `character_bible.json` và `lorebook.json`.
+### 1. Vai 1: Chuyên Gia Logic, Canon & Continuity (Logic & Lore Reviewer)
+- **Nhiệm vụ:** Đối chiếu nội dung chương với Story Canon, Timeline (`events.json`), và chấn thương/vật phẩm (`characters_state.json`).
 - **Câu hỏi kiểm tra:**
-  - Cảnh giới, năng lực hoặc bảo vật của nhân vật có bị "buff" vô lý hay mâu thuẫn với quy tắc đã đặt ra trước đó không?
-  - Dòng thời gian, địa điểm di chuyển có hợp lý không?
-  - Có chi tiết nào vi phạm các phục bút đang chờ trong `foreshadow.json` không?
+  - Quy tắc thế giới và cảnh giới có bị phá vỡ không?
+  - Dòng thời gian và quan hệ nhân quả có bị đảo lộn không?
+  - Nhân vật có đang tự nhiên lành lặn vết thương cũ hoặc dùng lại vật phẩm đã mất không?
+  - Có nhân vật nào hành xử/nói năng dựa trên bí mật mà họ chưa từng được biết không?
 
 ---
 
@@ -26,21 +30,40 @@ Khi nhận lệnh `/story-review`, AI tiến hành thẩm định lần lượt 
 - **Nhiệm vụ:** Đánh giá nhịp điệu của câu chuyện và mức độ giữ chân độc giả.
 - **Câu hỏi kiểm tra:**
   - Chương này có bị quá lê thê hoặc quá vội vàng không?
-  - Điểm xung đột chính có đủ căng thẳng không?
-  - Cuối chương có để lại điểm treo móc (cliffhanger/hook) khiến người đọc muốn bấm đọc tiếp chương sau không?
+  - Điểm xung đột chính có đủ căng thẳng và có nguyên nhân rõ ràng không?
+  - Cuối chương có để lại điểm treo móc (cliffhanger/hook) kích thích tò mò không?
 
 ---
 
-### 3. Vai 3: Nhà Phê Bình Nhân Vật & Cảm Xúc (Character Voice & OOC Reviewer)
-- **Nhiệm vụ:** Rà soát xem nhân vật có bị lệch tính cách (*Out Of Character - OOC*) không.
+### 3. Vai 3: Nhà Phê Bình Nhân Vật & Cảm Xúc (Character Voice & Psychology Reviewer)
+- **Nhiệm vụ:** Rà soát chiều sâu tâm lý, giọng điệu nhân vật và nguy cơ OOC (*Out Of Character*).
 - **Câu hỏi kiểm tra:**
-  - Lời thoại của nhân vật có đúng khẩu khí và vị thế của họ không?
-  - Phản ứng tâm lý trước biến cố có chân thật và tương xứng với quá khứ của nhân vật không?
+  - Khẩu khí của nhân vật có nhất quán với địa vị và bối cảnh của họ không?
+  - Động cơ và phản ứng cảm xúc có bắt nguồn từ các biến cố trước đó hay bị khiên cưỡng?
+  - Niềm tin của nhân vật (dù đúng hay sai) có được tôn trọng trong hành vi không?
+
+---
+
+## 📋 HỆ THỐNG PHÂN LOẠI 4 CẤP ĐỘ PHÁT HIỆN (4-TIER AUDIT RUBRIC)
+
+Báo cáo thẩm định bắt buộc phân loại mọi phát hiện thành 4 cấp độ rõ ràng:
+
+1. 🔴 **Lỗi nghiêm trọng (Critical):**
+   - Phá vỡ canon, timeline, quan hệ nhân quả, rò rỉ bí mật sai nhân vật, mâu thuẫn trạng thái chấn thương/vật phẩm.
+   - *Yêu cầu:* Bắt buộc chỉ ra bằng chứng (Chương X dòng Y) và sửa trước khi lưu chương.
+2. 🟡 **Lệch đáng kể (Significant):**
+   - Động cơ nhân vật bị suy yếu, nhịp điệu chuyển cảnh quá gắt, thiếu tương tác giác quan.
+   - *Yêu cầu:* Khuyến nghị sửa đổi cụ thể.
+3. 🟢 **Lệch mềm (Soft):**
+   - Biến thiên tỷ lệ đối thoại / miêu tả, độ dài câu trung bình hơi lệch so với profile mẫu nhưng phù hợp cảnh.
+   - *Yêu cầu:* Tùy chọn cân nhắc, không ép buộc.
+4. 🎨 **Lựa chọn nghệ thuật hợp lệ (Artistic Choice):**
+   - Các phép ẩn dụ, dòng ý thức, đảo trật tự kể chuyện có chủ đích nghệ thuật.
+   - *Yêu cầu:* Tôn trọng và bảo toàn nguyên vẹn, không được sửa máy móc.
 
 ---
 
 ## 📋 MẪU BÁO CÁO THẨM ĐỊNH (OUTPUT FORMAT)
-AI xuất báo cáo ngắn gọn theo cấu trúc:
-- **Điểm sáng:** 1-2 điểm làm tốt nhất (cảm xúc, nhịp văn, đối thoại).
-- **Lỗ hổng cần sửa (Crucial Fixes):** Chỉ ra chính xác đoạn văn có vấn đề và đề xuất cách sửa cụ thể.
-- **Điểm đánh giá chung:** Đạt / Cần chỉnh sửa trước khi lưu.
+- **Điểm sáng:** 1-2 điểm làm tốt nhất (cảm xúc, đối thoại, nhịp văn).
+- **Danh sách phát hiện:** Bảng phân loại [Critical / Significant / Soft / Artistic Choice] kèm trích dẫn văn bản và phương án đề xuất.
+- **Kết luận:** Sẵn sàng lưu (Ready to save) / Cần chỉnh sửa (Needs repair).
