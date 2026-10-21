@@ -113,12 +113,122 @@ class NarrativeMemoryEngine:
             self.conflicts = []
 
     def save_all(self):
-        """Persists all memory stores atomically."""
+        """Persists all memory stores atomically and updates Markdown projections."""
         atomic_save_json(self.canon_file, self.canon)
         atomic_save_json(self.events_file, self.events)
         atomic_save_json(self.chars_file, self.characters)
         atomic_save_json(self.knowledge_file, self.knowledge)
         atomic_save_json(self.conflicts_file, self.conflicts)
+        self.export_markdown_projections()
+
+    def export_markdown_projections(self):
+        """Generates clean, human-and-agent-readable Markdown summaries in summaries/ directory."""
+        summaries_dir = os.path.dirname(self.memory_dir)
+        os.makedirs(summaries_dir, exist_ok=True)
+
+        # 1. characters.md
+        chars_lines = ["# HỒ SƠ & TIẾN TRÌNH NHÂN VẬT (DYNAMIC CHARACTER STATES)\n"]
+        if not self.characters:
+            chars_lines.append("_Chưa có nhân vật nào được ghi nhận._\n")
+        else:
+            for c_name, c_state in sorted(self.characters.items()):
+                curr_ch = c_state.get("current_chapter", 0)
+                chars_lines.append(f"## {c_name} (Tiến trình: Chương {curr_ch})\n")
+                goals = c_state.get("goals", {})
+                if goals.get("primary"):
+                    chars_lines.append(f"- **Mục tiêu chính**: {goals['primary']}")
+                if goals.get("secondary"):
+                    chars_lines.append(f"- **Mục tiêu phụ**: {goals['secondary']}")
+                chars_lines.append(f"- **Tâm trạng hiện thời**: {c_state.get('emotional_state', 'Bình thường')}")
+
+                phys = c_state.get("physical_state", {})
+                injs = phys.get("injuries", [])
+                inv = phys.get("inventory", [])
+                loc = phys.get("location", "Chưa rõ")
+                chars_lines.append(f"- **Vị trí**: {loc}")
+                chars_lines.append(f"- **Chấn thương**: {', '.join(injs) if injs else 'Không có (khỏe mạnh)'}")
+                chars_lines.append(f"- **Hành trang / Vật phẩm**: {', '.join(inv) if inv else 'Không có'}")
+
+                rels = c_state.get("relationships", {})
+                if rels:
+                    chars_lines.append("- **Mối quan hệ**:")
+                    for target, rel in rels.items():
+                        chars_lines.append(f"  - Với `{target}`: {rel}")
+
+                beliefs = c_state.get("beliefs", {})
+                if beliefs:
+                    chars_lines.append("- **Niềm tin & Nhận thức**:")
+                    for b_title, b_data in beliefs.items():
+                        is_wt = isinstance(b_data, dict) and b_data.get("is_world_truth")
+                        tag = "Sự thật khách quan" if is_wt else "Chủ quan / Hiểu lầm"
+                        chars_lines.append(f"  - {b_title} _[{tag}]_")
+
+                shifts = c_state.get("notable_shifts", [])
+                if shifts:
+                    chars_lines.append("- **Biến chuyển tâm lý đáng chú ý**:")
+                    for s in shifts:
+                        chars_lines.append(f"  - [Ch.{s.get('chapter', '?')}]: {s.get('note', '')}")
+                chars_lines.append("")
+
+        chars_md_path = os.path.join(summaries_dir, "characters.md")
+        with open(chars_md_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(chars_lines).strip() + "\n")
+
+        # 2. timeline.md
+        tl_lines = ["# TRỤC THỜI GIAN SỰ KIỆN NHÂN QUẢ (CAUSAL TIMELINE)\n"]
+        if not self.events:
+            tl_lines.append("_Chưa có sự kiện nào trong timeline._\n")
+        else:
+            for e in self.events:
+                status_str = e.get("status", "confirmed").upper()
+                tl_lines.append(f"### [Chương {e.get('chapter', 0)}] {e.get('title')} `[{status_str}]`")
+                tl_lines.append(f"- **Tóm lược**: {e.get('summary')}")
+                if e.get("relative_time"):
+                    tl_lines.append(f"- **Mốc thời gian**: {e['relative_time']}")
+                if e.get("characters_involved"):
+                    tl_lines.append(f"- **Nhân vật tham gia**: {', '.join(e['characters_involved'])}")
+                if e.get("lasting_changes"):
+                    tl_lines.append("- **Hệ quả / Di chứng kéo dài**:")
+                    for chg in e["lasting_changes"]:
+                        tl_lines.append(f"  - {chg}")
+                tl_lines.append("")
+
+        tl_md_path = os.path.join(summaries_dir, "timeline.md")
+        with open(tl_md_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(tl_lines).strip() + "\n")
+
+        # 3. canon.md
+        canon_lines = ["# CHÂN LÝ THẾ GIỚI & QUY TẮC BẤT BIẾN (STORY CANON)\n"]
+        if not self.canon:
+            canon_lines.append("_Chưa có dữ kiện Canon nào được ghi nhận._\n")
+        else:
+            for f_item in self.canon:
+                prov = f_item.get("provenance", {})
+                ch_str = f"Chương {prov.get('chapter')}" if prov.get("chapter") else "Khởi tạo"
+                q_str = f' — _"{prov.get("quote")}"_' if prov.get("quote") else ""
+                state_tag = f_item.get("state", "confirmed").upper()
+                type_tag = f_item.get("fact_type", "world_truth")
+                canon_lines.append(f"- **[{state_tag} | {type_tag}]** `{f_item.get('subject')}` {f_item.get('predicate')} **{f_item.get('object')}** ({ch_str}){q_str}")
+
+        secrets = self.knowledge.get("secrets", [])
+        if secrets:
+            canon_lines.append("\n## DANH SÁCH BÍ MẬT & MA TRẬN NHẬN THỨC (SECRETS MATRIX)\n")
+            for s in secrets:
+                known_str = ", ".join(s.get("known_by", []))
+                canon_lines.append(f"- **{s.get('title')}** `[{s.get('status', 'concealed').upper()}]`")
+                canon_lines.append(f"  - Chủ sở hữu: `{s.get('owner')}` | Người biết: `{known_str}`")
+                canon_lines.append(f"  - Tóm tắt: {s.get('summary')}")
+
+        open_conflicts = self.get_open_conflicts()
+        if open_conflicts:
+            canon_lines.append("\n## TRANH CHẤP & MÂU THUẪN ĐANG MỞ (OPEN CONFLICTS)\n")
+            for c in open_conflicts:
+                canon_lines.append(f"- ⚠️ **{c.get('subject')}** `[{c.get('severity', 'critical').upper()}]`: {c.get('description')}")
+                canon_lines.append(f"  - Nguồn A: Ch.{c.get('source_a', {}).get('chapter')} | Nguồn B: Ch.{c.get('source_b', {}).get('chapter')}")
+
+        canon_md_path = os.path.join(summaries_dir, "canon.md")
+        with open(canon_md_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(canon_lines).strip() + "\n")
 
     # ─── G1: CANON & PROVENANCE ───────────────────────────────────────────────
 
@@ -173,6 +283,7 @@ class NarrativeMemoryEngine:
             if tags:
                 existing["tags"] = list(set(existing.get("tags", []) + tags))
             atomic_save_json(self.canon_file, self.canon)
+            self.export_markdown_projections()
             return existing
 
         fid = fact_id or f"fact_{len(self.canon) + 1:04d}"
@@ -195,6 +306,7 @@ class NarrativeMemoryEngine:
         }
         self.canon.append(new_fact)
         atomic_save_json(self.canon_file, self.canon)
+        self.export_markdown_projections()
         return new_fact
 
     def update_fact_state(self, fact_id: str, new_state: str, note: str = "") -> bool:
@@ -273,6 +385,7 @@ class NarrativeMemoryEngine:
                     e["lasting_changes"] = list(set(e.get("lasting_changes", []) + lasting_changes))
                 e["status"] = status
                 atomic_save_json(self.events_file, self.events)
+                self.export_markdown_projections()
                 return e
 
         eid = event_id or f"evt_ch{chapter:03d}_{len(self.events) + 1:02d}"
@@ -295,6 +408,7 @@ class NarrativeMemoryEngine:
         # Sort events by chapter and sequence
         self.events.sort(key=lambda x: (x.get("chapter", 0), x.get("sequence_index", 0)))
         atomic_save_json(self.events_file, self.events)
+        self.export_markdown_projections()
         return new_event
 
     def get_timeline(self, up_to_chapter: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -391,6 +505,7 @@ class NarrativeMemoryEngine:
 
         self.characters[character_name.strip()] = state
         atomic_save_json(self.chars_file, self.characters)
+        self.export_markdown_projections()
         return state
 
     def transfer_item(self, item_name: str, from_char: str, to_char: str, chapter: int, reason: str = ""):
@@ -440,6 +555,7 @@ class NarrativeMemoryEngine:
                 if reveal_conditions:
                     s["reveal_conditions"] = reveal_conditions
                 atomic_save_json(self.knowledge_file, self.knowledge)
+                self.export_markdown_projections()
                 return s
 
         sid = secret_id or f"sec_{len(secrets) + 1:03d}"
@@ -457,6 +573,7 @@ class NarrativeMemoryEngine:
         }
         secrets.append(new_secret)
         atomic_save_json(self.knowledge_file, self.knowledge)
+        self.export_markdown_projections()
         return new_secret
 
     def is_secret_known_by(self, secret_id_or_title: str, character_name: str) -> bool:
@@ -509,6 +626,7 @@ class NarrativeMemoryEngine:
         }
         self.conflicts.append(conflict)
         atomic_save_json(self.conflicts_file, self.conflicts)
+        self.export_markdown_projections()
         return conflict
 
     def get_open_conflicts(self) -> List[Dict[str, Any]]:
@@ -521,6 +639,7 @@ class NarrativeMemoryEngine:
                 c["resolution_note"] = resolution_note
                 c["resolved_at"] = get_iso_timestamp()
                 atomic_save_json(self.conflicts_file, self.conflicts)
+                self.export_markdown_projections()
                 return True
         return False
 

@@ -216,5 +216,39 @@ class TestNarrativeMemoryEngine(unittest.TestCase):
         self.assertIn("Lâm Phong", ctx["layer_b_memory"]["character_dynamic_states"])
 
 
+    def test_markdown_projections_sync(self):
+        """Test Markdown projections sync on state changes."""
+        summaries_dir = os.path.dirname(self.memory_dir)
+        chars_md = os.path.join(summaries_dir, "characters.md")
+        tl_md = os.path.join(summaries_dir, "timeline.md")
+        canon_md = os.path.join(summaries_dir, "canon.md")
+
+        # 1. Update character state -> characters.md exists and contains info
+        self.engine.update_character_state("Tiêu Viêm", 1, goals={"primary": "Báo thù nạp cát"}, location="Ô Thản Thành")
+        self.assertTrue(os.path.exists(chars_md))
+        with open(chars_md, "r", encoding="utf-8") as f:
+            c_content = f.read()
+        self.assertIn("Tiêu Viêm", c_content)
+        self.assertIn("Báo thù nạp cát", c_content)
+
+        # 2. Add event -> timeline.md exists and contains info
+        self.engine.add_event(1, "Từ hôn ước", "Nạp Lan Yên Nhiên đến hủy hôn.", characters_involved=["Tiêu Viêm"])
+        self.assertTrue(os.path.exists(tl_md))
+        with open(tl_md, "r", encoding="utf-8") as f:
+            t_content = f.read()
+        self.assertIn("Từ hôn ước", t_content)
+        self.assertIn("Nạp Lan Yên Nhiên đến hủy hôn", t_content)
+
+        # 3. Add fact & secret -> canon.md exists and contains info
+        self.engine.add_fact("Dược Lão", "chân_thân", "Dược Tôn Giả", chapter=1, quote="Ta chính là Dược Trần")
+        self.engine.add_secret("Thân phận Dược Lão", "Dược Lão là bát phẩm luyện dược sư", owner="Dược Lão", known_by=["Dược Lão", "Tiêu Viêm"])
+        self.assertTrue(os.path.exists(canon_md))
+        with open(canon_md, "r", encoding="utf-8") as f:
+            cn_content = f.read()
+        self.assertIn("Dược Tôn Giả", cn_content)
+        self.assertIn("Thân phận Dược Lão", cn_content)
+        self.assertIn("SECRETS MATRIX", cn_content)
+
+
 if __name__ == "__main__":
     unittest.main()

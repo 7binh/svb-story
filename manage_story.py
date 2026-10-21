@@ -1084,18 +1084,23 @@ def action_status(args):
 
 # ─── QUALITY CHECK & DASHBOARD ────────────────────────────────────────────────
 def action_check(args):
-    paths = get_paths()
-    if not paths:
-        print("[ERROR] Chưa chọn truyện hoạt động.")
-        sys.exit(1)
-    draft_file = paths['draft']
-    if not os.path.exists(draft_file):
-        print(f"[ERROR] Không tìm thấy file nháp: {draft_file}")
+    target_file = getattr(args, 'file', None)
+    if not target_file:
+        paths = get_paths()
+        if not paths:
+            print("[ERROR] Chưa chọn truyện hoạt động.")
+            sys.exit(1)
+        target_file = paths['draft']
+    else:
+        target_file = os.path.abspath(target_file)
+
+    if not os.path.exists(target_file):
+        print(f"[ERROR] Không tìm thấy file cần kiểm tra: {target_file}")
         sys.exit(1)
 
-    print("=== KIỂM SOÁT VĂN PHONG & CHẤT LƯỢNG BẢN NHÁP (QUALITY GATE) ===")
+    print(f"=== KIỂM SOÁT VĂN PHONG & CHẤT LƯỢNG (QUALITY GATE): {os.path.basename(target_file)} ===")
 
-    with open(draft_file, 'r', encoding='utf-8', errors='replace') as f:
+    with open(target_file, 'r', encoding='utf-8', errors='replace') as f:
         draft_content = f.read()
 
     # 1. Native Vietnamese Quality Check (Pure Python)
@@ -1126,7 +1131,7 @@ def action_check(args):
         print("[2/2] Kiểm tra mở rộng qua pattern checker...")
         import subprocess
         try:
-            res = subprocess.run(['node', pat_script, '--fail-on=blocking', draft_file],
+            res = subprocess.run(['node', pat_script, '--fail-on=blocking', target_file],
                                  capture_output=True, text=True, encoding='utf-8')
             if res.returncode != 0:
                 err_text = res.stderr.strip() or res.stdout.strip()
@@ -1375,6 +1380,19 @@ def action_memory(args):
             print(f"  Nguồn: Chương {fact['provenance']['chapter']} | \"{fact['provenance'].get('quote','')}\"")
         return
 
+    # 1b. Add Event
+    if getattr(args, 'add_event', False):
+        if not args.chapter or not getattr(args, 'title', None) or not getattr(args, 'summary', None):
+            print("[ERROR] Thêm sự kiện bắt buộc: --chapter, --title, --summary.")
+            sys.exit(1)
+        evt = engine.add_event(
+            chapter=args.chapter,
+            title=args.title,
+            summary=args.summary
+        )
+        print(f"[SUCCESS] Đã ghi nhận sự kiện [{evt['event_id']}] vào Timeline (Chương {args.chapter}): {evt['title']}")
+        return
+
     # 2. Timeline
     if getattr(args, 'timeline', False):
         tl = engine.get_timeline(up_to_chapter=args.chapter)
@@ -1437,12 +1455,17 @@ def action_memory(args):
     if getattr(args, 'audit', False):
         config = load_config(paths)
         curr = config.get('current_chapter', 0)
+        target_file = getattr(args, 'file', None)
         draft_content = ""
-        if os.path.exists(paths['draft']):
+        if target_file and os.path.exists(target_file):
+            with open(target_file, 'r', encoding='utf-8') as df:
+                draft_content = df.read()
+        elif os.path.exists(paths['draft']):
             with open(paths['draft'], 'r', encoding='utf-8') as df:
                 draft_content = df.read()
         issues = engine.audit_continuity(target_chapter=curr + 1, draft_text=draft_content)
-        print(f"=== KIỂM ĐỊNH TÍNH NHẤT QUÁN & CONTINUITY (CHƯƠNG {curr + 1}) ===")
+        target_name = os.path.basename(target_file) if target_file else "draft.md"
+        print(f"=== KIỂM ĐỊNH TÍNH NHẤT QUÁN & CONTINUITY ({target_name} - CHƯƠNG {curr + 1}) ===")
         if not issues:
             print("✅ Không phát hiện mâu thuẫn hoặc lỗ hổng continuity nào. Canon toàn vẹn!")
         else:
@@ -1536,7 +1559,8 @@ def main():
     sub.add_parser('status', help='Xem thông tin truyện')
 
     # check
-    sub.add_parser('check', help='Kiểm tra chất lượng văn phong & khử AI-slop bản nháp')
+    p_chk = sub.add_parser('check', help='Kiểm tra chất lượng văn phong & khử AI-slop bản nháp hoặc file chương')
+    p_chk.add_argument('--file', default=None, help='Đường dẫn file chương hoặc nháp cần kiểm tra (mặc định: draft.md)')
 
     # dashboard
     sub.add_parser('dashboard', help='Mở giao diện Web Dashboard quản lý truyện')
@@ -1557,6 +1581,10 @@ def main():
     p.add_argument('--character', dest='char_name', default=None, help='Xem trạng thái tiến trình của nhân vật')
     p.add_argument('--secrets', action='store_true', help='Xem ma trận bí mật và thông tin nhân vật biết')
     p.add_argument('--audit', action='store_true', help='Kiểm định tính nhất quán và quét mâu thuẫn continuity')
+    p.add_argument('--file', default=None, help='Đường dẫn file cần kiểm định continuity (mặc định: draft.md)')
+    p.add_argument('--add-event', dest='add_event', action='store_true', help='Thêm sự kiện mới vào Causal Timeline')
+    p.add_argument('--title', default='', help='Tiêu đề sự kiện')
+    p.add_argument('--summary', default='', help='Tóm tắt sự kiện')
     p.add_argument('--add-fact', dest='add_fact', action='store_true', help='Thêm dữ kiện mới vào Canon')
     p.add_argument('--subject', default='', help='Chủ thể của dữ kiện')
     p.add_argument('--predicate', default='', help='Vị ngữ/quan hệ của dữ kiện')
