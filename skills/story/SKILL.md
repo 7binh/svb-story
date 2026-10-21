@@ -14,6 +14,7 @@ description: "Trạm điều phối trung tâm cho hệ sinh thái viết truy�
 | Nhu cầu của bạn | Lệnh kích hoạt trực tiếp | Chức năng chính |
 |---|---|---|
 | **Viết chương mới / Mở rộng nháp** | `/story-write` (hoặc `/story-flow`) | Vòng lặp 5 bước: context -> viết nháp -> check -> save. |
+| **Học & Giải mã văn phong truyện mẫu** | `/story-study` | Phân tích 5 trục từ file, thư mục hoặc dán nháp; tạo Style Fingerprint & Rules. |
 | **Lập đề cương / Gợi ý rẽ nhánh / Phục bút** | `/story-outline` | Quản lý mục tiêu từng Arc, gợi ý 3 nhánh rẽ, theo dõi manh mối. |
 | **Khử văn mẫu AI / Chuẩn hóa câu từ** | `/story-deslop` | Lọc bỏ từ ngữ sáo rỗng, áp dụng Show-Don't-Tell và chiều sâu giác quan. |
 | **Thẩm định phản biện đa góc nhìn** | `/story-review` | Soát lỗi logic bối cảnh, nhịp điệu (pacing) và tính cách nhân vật (OOC). |

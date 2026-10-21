@@ -29,6 +29,8 @@ CHARACTER_BIBLE_JSON = 'character_bible.json'
 LOREBOOK_JSON         = 'lorebook.json'
 OUTLINE_MD           = 'outline.md'
 FORESHADOW_JSON      = 'foreshadow.json'
+STYLE_PROFILES_DIR   = 'style_profiles'
+ACTIVE_STYLE_PROFILE_JSON = 'active_style_profile.json'
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -78,6 +80,8 @@ def get_paths():
         'lorebook':        os.path.join(sdir, SUMMARIES_DIR, LOREBOOK_JSON),
         'outline':         os.path.join(sdir, SUMMARIES_DIR, OUTLINE_MD),
         'foreshadow':      os.path.join(sdir, SUMMARIES_DIR, FORESHADOW_JSON),
+        'style_profiles_dir':    os.path.join(sdir, SUMMARIES_DIR, STYLE_PROFILES_DIR),
+        'active_style_profile':  os.path.join(sdir, SUMMARIES_DIR, ACTIVE_STYLE_PROFILE_JSON),
     }
 
 def load_config(paths):
@@ -106,6 +110,92 @@ def chapter_filepath(paths, n):
 
 def chapter_exists(paths, n):
     return os.path.exists(chapter_filepath(paths, n))
+
+
+# ─── STYLE PROFILE HELPERS (MULTI-PROFILE) ───────────────────────────────────
+
+def get_active_profile_id(paths):
+    if not os.path.exists(paths['active_style_profile']):
+        return 'default'
+    try:
+        with open(paths['active_style_profile'], 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('active_profile', 'default')
+    except Exception:
+        return 'default'
+
+
+def get_active_style_profile_info(paths):
+    active_id = get_active_profile_id(paths)
+    prof_dir = os.path.join(paths['style_profiles_dir'], active_id)
+    json_path = os.path.join(prof_dir, 'style_profile.json')
+    md_path = os.path.join(prof_dir, 'STYLE_PROFILE.md')
+
+    if not os.path.exists(json_path):
+        # Backward compatibility with legacy summaries/style_profile.json
+        legacy_json = os.path.join(paths['summaries_dir'], 'style_profile.json')
+        if os.path.exists(legacy_json):
+            try:
+                with open(legacy_json, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                return {
+                    'profile_id': 'legacy',
+                    'version': data.get('version', '1.0.0'),
+                    'json_path': legacy_json,
+                    'md_path': os.path.join(paths['summaries_dir'], 'STYLE_PROFILE.md'),
+                    'data': data,
+                    'context_guidance': data.get('context_guidance', [])
+                }
+            except Exception:
+                pass
+        return None
+
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return {
+            'profile_id': active_id,
+            'version': data.get('version', '1.0.0'),
+            'json_path': json_path,
+            'md_path': md_path,
+            'data': data,
+            'context_guidance': data.get('context_guidance', [])
+        }
+    except Exception:
+        return None
+
+
+def set_active_style_profile(paths, profile_id):
+    prof_dir = os.path.join(paths['style_profiles_dir'], profile_id)
+    if not os.path.exists(prof_dir):
+        return False, f"Profile '{profile_id}' không tồn tại trong {paths['style_profiles_dir']}."
+    ensure_dir(paths['summaries_dir'])
+    with open(paths['active_style_profile'], 'w', encoding='utf-8') as f:
+        json.dump({'active_profile': profile_id, 'updated_at': get_current_time()}, f, ensure_ascii=False, indent=2)
+    return True, f"Đã chuyển sang profile văn phong: '{profile_id}'"
+
+
+def save_style_profile_data(paths, profile_id, profile_data, md_report):
+    prof_dir = os.path.join(paths['style_profiles_dir'], profile_id)
+    ensure_dir(prof_dir)
+    json_path = os.path.join(prof_dir, 'style_profile.json')
+    md_path = os.path.join(prof_dir, 'STYLE_PROFILE.md')
+
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(profile_data, f, ensure_ascii=False, indent=2)
+
+    with open(md_path, 'w', encoding='utf-8') as f:
+        f.write(md_report)
+
+    # Set as active
+    ensure_dir(paths['summaries_dir'])
+    with open(paths['active_style_profile'], 'w', encoding='utf-8') as f:
+        json.dump({'active_profile': profile_id, 'updated_at': get_current_time()}, f, ensure_ascii=False, indent=2)
+
+    print(f"[SUCCESS] Đã lưu Style Profile: '{profile_id}' (v{profile_data.get('version', '1.0.0')})")
+    print(f"  JSON data : {json_path}")
+    print(f"  Markdown  : {md_path}")
+    print(f"  Đã đặt làm profile hoạt động (active).\n")
 
 
 # ─── CORE DATABASE SAVE FUNCTIONS ─────────────────────────────────────────────
@@ -339,6 +429,12 @@ def action_init(args):
     with open(os.path.join(sdir, SUMMARIES_DIR, FORESHADOW_JSON), 'w', encoding='utf-8') as f:
         json.dump([], f, ensure_ascii=False, indent=2)
 
+    # Initialize default style profile
+    default_style_dir = os.path.join(sdir, SUMMARIES_DIR, STYLE_PROFILES_DIR, 'default')
+    ensure_dir(default_style_dir)
+    with open(os.path.join(sdir, SUMMARIES_DIR, ACTIVE_STYLE_PROFILE_JSON), 'w', encoding='utf-8') as f:
+        json.dump({'active_profile': 'default', 'updated_at': get_current_time()}, f, ensure_ascii=False, indent=2)
+
     draft_path = os.path.join(sdir, CHAPTERS_DIR, 'draft.md')
     if not os.path.exists(draft_path):
         with open(draft_path, 'w', encoding='utf-8') as f:
@@ -490,7 +586,26 @@ def action_save(args):
             f.write("Viết chương mới tại đây...")
         return
 
-    # 6. /Title or /story-title (Chapter drafting)
+    # 6. /story-study or /study (Learn style from draft)
+    elif first_line.startswith('/story-study') or first_line.startswith('/study'):
+        prof_match = re.search(r'--profile\s+([a-zA-Z0-9_-]+)', first_line)
+        profile_name = prof_match.group(1) if prof_match else 'default'
+        sample_text = '\n'.join(lines[1:]).strip()
+        if not sample_text:
+            print("[ERROR] Đoạn văn mẫu trong nháp trống. Hãy dán đoạn trích cần học bên dưới dòng /story-study.")
+            return
+
+        import scripts.style_analyzer as sa
+        print(f"[INFO] Đang phân tích văn phong 5 trục từ đoạn trích dán nháp cho profile '{profile_name}'...")
+        analysis = sa.analyze_texts(["Văn bản dán nháp (draft.md)"], [sample_text], profile_id=profile_name)
+        md_report = sa.generate_markdown_report(analysis)
+        save_style_profile_data(paths, profile_name, analysis, md_report)
+
+        with open(paths['draft'], 'w', encoding='utf-8') as f:
+            f.write("Viết chương mới tại đây...")
+        return
+
+    # 7. /Title or /story-title (Chapter drafting)
     elif first_line.startswith('/Title') or first_line.startswith('/story-title'):
         title = first_line.replace('/story-title', '', 1).replace('/Title', '', 1).strip()
         if not title:
@@ -536,6 +651,7 @@ def action_save(args):
         print("  - Bối cảnh       : Dòng 1 `/Lore --entry \"Tên mục\" --chapter N`")
         print("  - Đề cương       : Dòng 1 `/Outline` hoặc `/Outline --append`")
         print("  - Phục bút       : Dòng 1 `/Foreshadow --clue \"Tên\" --chapter N`")
+        print("  - Học văn phong  : Dòng 1 `/story-study` hoặc `/story-study --profile <tên>`")
 
 
 # ─── CONTEXT ──────────────────────────────────────────────────────────────────
@@ -621,6 +737,20 @@ def action_context(args):
     print(f"\n[5] THIẾT LẬP THẾ GIỚI & NHÂN VẬT:")
     print(f"    - Character Bible : {paths['character_bible']}")
     print(f"    - Lorebook        : {paths['lorebook']}")
+
+    # 6. Active Style Profile
+    prof_info = get_active_style_profile_info(paths)
+    print(f"\n[6] HỒ SƠ VĂN PHONG ĐANG ÁP DỤNG:")
+    if prof_info:
+        p_id = prof_info['profile_id']
+        ver = prof_info.get('version', '1.0.0')
+        print(f"    → Profile : '{p_id}' (Phiên bản {ver})")
+        print(f"    → Quy tắc : {prof_info['md_path']}")
+        guidance = prof_info.get('context_guidance', [])
+        for g in guidance:
+            print(f"    🎯 {g}")
+    else:
+        print("    ⚠ Chưa kích hoạt profile văn phong nào. Dùng `/story-study` hoặc `python manage_story.py style --learn` để thiết lập.")
 
 
 # ─── OUTLINE & FORESHADOW CLI ────────────────────────────────────────────────
@@ -753,6 +883,123 @@ def action_dashboard(args):
         print(f"[ERROR] Không thể chạy dashboard: {e}")
 
 
+# ─── STYLE ENGINE CLI (MULTI-PROFILE) ─────────────────────────────────────────
+def action_style(args):
+    paths = get_paths()
+    if not paths:
+        print("[ERROR] Chưa chọn truyện hoạt động. Hãy chạy lệnh 'select' hoặc 'init' trước.")
+        return
+
+    import scripts.style_analyzer as sa
+
+    # 1. --list
+    if args.list:
+        ensure_dir(paths['style_profiles_dir'])
+        profiles = [d for d in os.listdir(paths['style_profiles_dir']) if os.path.isdir(os.path.join(paths['style_profiles_dir'], d))]
+        active_id = get_active_profile_id(paths)
+        print("=== DANH SÁCH STYLE PROFILES HIỆN CÓ ===")
+        if not profiles:
+            print("  (Chưa có profile nào. Dùng --learn để tạo profile đầu tiên).")
+            return
+        for p in profiles:
+            marker = " * [ACTIVE]" if p == active_id else "  "
+            json_p = os.path.join(paths['style_profiles_dir'], p, 'style_profile.json')
+            ver = "1.0.0"
+            if os.path.exists(json_p):
+                try:
+                    with open(json_p, 'r', encoding='utf-8') as f:
+                        ver = json.load(f).get('version', '1.0.0')
+                except Exception:
+                    pass
+            print(f"{marker} - {p:<20} (Phiên bản {ver})")
+        return
+
+    # 2. --set
+    if args.set_profile:
+        success, msg = set_active_style_profile(paths, args.set_profile)
+        if success:
+            print(f"[SUCCESS] {msg}")
+        else:
+            print(f"[ERROR] {msg}")
+        return
+
+    # 3. --show
+    if args.show is not None:
+        p_id = args.show if args.show else get_active_profile_id(paths)
+        md_path = os.path.join(paths['style_profiles_dir'], p_id, 'STYLE_PROFILE.md')
+        if not os.path.exists(md_path):
+            print(f"[ERROR] Không tìm thấy hồ sơ STYLE_PROFILE.md của profile '{p_id}'.")
+            return
+        with open(md_path, 'r', encoding='utf-8') as f:
+            print(f.read())
+        return
+
+    # 4. --learn
+    if args.learn:
+        target_path = args.learn
+        profile_name = args.profile or (slugify(os.path.basename(target_path.rstrip('\\/')).split('.')[0]) or 'default')
+
+        if not os.path.exists(target_path):
+            print(f"[ERROR] Đường dẫn không tồn tại: {target_path}")
+            return
+
+        sources = []
+        texts = []
+
+        if os.path.isfile(target_path):
+            try:
+                with open(target_path, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read().strip()
+                if not content:
+                    print(f"[ERROR] File mẫu trống: {target_path}")
+                    return
+                sources.append(target_path)
+                texts.append(content)
+                print(f"[INFO] Đã đọc 1 file mẫu: {target_path} ({len(content.split()):,} từ)")
+            except Exception as e:
+                print(f"[ERROR] Không thể đọc file mẫu {target_path}: {e}")
+                return
+        elif os.path.isdir(target_path):
+            print(f"[INFO] Đang quét thư mục mẫu: {target_path}")
+            valid_exts = ('.txt', '.md')
+            for root, _, files in os.walk(target_path):
+                for file in files:
+                    if file.lower().endswith(valid_exts):
+                        fp = os.path.join(root, file)
+                        try:
+                            with open(fp, 'r', encoding='utf-8', errors='replace') as f:
+                                c = f.read().strip()
+                            if c:
+                                sources.append(fp)
+                                texts.append(c)
+                                print(f"  + Đã đọc: {file} ({len(c.split()):,} từ)")
+                            else:
+                                print(f"  - Bỏ qua (file rỗng): {file}")
+                        except Exception as e:
+                            print(f"  ⚠ Lỗi đọc file {file}: {e}")
+            if not texts:
+                print(f"[ERROR] Không tìm thấy file văn bản hợp lệ (.txt, .md) nào trong {target_path}")
+                return
+            print(f"[INFO] Tổng cộng đã nạp thành công {len(texts)} file mẫu.")
+
+        print(f"\n[INFO] Đang phân tích văn phong 5 trục cho profile '{profile_name}'...")
+        analysis = sa.analyze_texts(sources, texts, profile_id=profile_name)
+        md_report = sa.generate_markdown_report(analysis)
+        save_style_profile_data(paths, profile_name, analysis, md_report)
+        return
+
+    # Default action if no flags: show active profile status
+    active_info = get_active_style_profile_info(paths)
+    if active_info:
+        print(f"=== PROFILE VĂN PHONG ĐANG HOẠT ĐỘNG: '{active_info['profile_id']}' ===")
+        print(f"  Phiên bản : {active_info.get('version', '1.0.0')}")
+        print(f"  File JSON : {active_info['json_path']}")
+        print(f"  File MD   : {active_info['md_path']}\n")
+        print("Dùng `python manage_story.py style --show` để xem toàn văn quy tắc.")
+    else:
+        print("[INFO] Chưa có profile nào được thiết lập. Dùng `python manage_story.py style --learn <path>` để tạo.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="StoryFlow CLI - Quản trị và hỗ trợ sáng tác truyện.")
     sub = parser.add_subparsers(dest='command', required=True)
@@ -799,6 +1046,14 @@ def main():
     # dashboard (from .agents)
     sub.add_parser('dashboard', help='Mở giao diện Web Dashboard quản lý truyện')
 
+    # style (Style Engine)
+    p = sub.add_parser('style', help='Quản lý hồ sơ văn phong truyện mẫu (Style Engine)')
+    p.add_argument('--learn', default=None, help='Đường dẫn file hoặc thư mục truyện mẫu để phân tích')
+    p.add_argument('--profile', default=None, help='Tên profile cần tạo hoặc cập nhật')
+    p.add_argument('--set', dest='set_profile', default=None, help='Chọn profile văn phong làm active')
+    p.add_argument('--show', nargs='?', const='', default=None, help='Hiển thị chi tiết Style Profile')
+    p.add_argument('--list', action='store_true', help='Liệt kê tất cả Style Profiles hiện có')
+
     args = parser.parse_args()
 
     dispatch = {
@@ -813,6 +1068,7 @@ def main():
         'status':     action_status,
         'check':      action_check,
         'dashboard':  action_dashboard,
+        'style':      action_style,
     }
     dispatch[args.command](args)
 

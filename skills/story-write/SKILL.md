@@ -21,10 +21,11 @@ Quy trình 5 bước khép kín phối hợp giữa tác giả, AI và công c�
   2. Đã đọc brief tóm tắt ngắn trên console của các chương lẻ trung gian.
   3. Đã mở đọc toàn văn duy nhất chương liền trước (Chương N) để bắt nhịp hành văn.
   4. Đã nắm mục tiêu đề cương chương tiếp theo và phục bút đang chờ.
+  5. Đã đọc mục [6] HỒ SƠ VĂN PHONG ĐANG ÁP DỤNG (profile_id, version, 3 dòng chỉ dẫn nhanh và đường dẫn file STYLE_PROFILE.md đầy đủ).
 
 ---
 
-### Bước 2: Soạn Thảo Bản Nháp Đa Năng (Drafting)
+### Bước 2: Soạn Thảo Bản Nháp Đa Năng (Drafting & Style Enforcement)
 - **Hành động:** Soạn thảo vào file `stories/<active_story_id>/chapters/draft.md`.
 - **Cú pháp bắt buộc dòng 1 và 2:**
   ```markdown
@@ -32,16 +33,20 @@ Quy trình 5 bước khép kín phối hợp giữa tác giả, AI và công c�
   /story-brief [Tóm tắt 1-2 câu diễn biến chính để phục vụ load context sau này]
   (Nội dung chương triển khai từ đoạn test/ý tưởng của tác giả...)
   ```
-- **Quy tắc hành văn:** Áp dụng [../../references/show-dont-tell.md](../../references/show-dont-tell.md) (hữu hình hóa cảm xúc, đối thoại đa tầng, tả giác quan).
+- **Quy tắc văn phong bắt buộc (Style Enforcement Pipeline):**
+  - Tuân thủ bộ quy tắc trong file `STYLE_PROFILE.md` của profile đang active (nhịp câu, mật độ giác quan, tỷ lệ thoại vs tự sự).
+  - Áp dụng triệt để [../../references/show-dont-tell.md](../../references/show-dont-tell.md) (hữu hình hóa cảm xúc qua phản ứng cơ thể, đối thoại đa tầng).
 
 ---
 
-### Bước 3: Chốt Chặn Kiểm Tra Chất Lượng (Quality Gate)
+### Bước 3: Chốt Chặn Kiểm Tra Chất Lượng & Đối Chiếu 5 Trục (Quality Gate)
 - **Hành động:** Chạy lệnh kiểm tra:
   ```powershell
   python manage_story.py check
   ```
-- **Tiêu chuẩn hoàn tất (Completion Criterion):** Không còn lỗi dấu câu thô; không chứa các cụm từ sáo rỗng báo động bởi `scripts/check-ai-patterns.js`.
+- **Tiêu chuẩn hoàn tất (Completion Criterion):**
+  1. Không còn lỗi dấu câu thô; không chứa các cụm từ sáo rỗng báo động bởi `scripts/check-ai-patterns.js`.
+  2. Tự kiểm định bản nháp đã đáp ứng đủ 5 trục của Style Rules đang active (nhịp câu, giác quan, tỷ lệ thoại, khẩu khí, tu từ). Nếu phát hiện sai lệch, sửa trực tiếp vào nháp trước khi lưu.
 
 ---
 

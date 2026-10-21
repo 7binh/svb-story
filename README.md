@@ -4,14 +4,15 @@
 
 ---
 
-## 🧭 DANH SÁCH 8 SKILL CON TÍCH HỢP TRONG HỆ SINH THÁI
+## 🧭 DANH SÁCH 9 SKILL CON TÍCH HỢP TRONG HỆ SINH THÁI
 
-Khi bạn cài đặt repository này qua `npx skills add 7binh/svb-story`, bạn sẽ sở hữu trọn bộ 8 skill con tương ứng với 8 lệnh slash command chuyên biệt:
+Khi bạn cài đặt repository này qua `npx skills add 7binh/svb-story`, bạn sẽ sở hữu trọn bộ 9 skill con tương ứng với 9 lệnh slash command chuyên biệt:
 
 | Lệnh Slash Command | Tên Skill | Chức Năng Chính |
 |---|---|---|
 | `/story` | `story` | **Trạm điều phối trung tâm (Router)**: Điều hướng yêu cầu, chuyển đổi tác phẩm, khởi chạy Web Dashboard. |
-| `/story-write` | `story-write` | **Quy trình viết chính**: Vòng lặp 5 bước (context -> nháp draft.md -> check -> save). |
+| `/story-write` | `story-write` | **Quy trình viết chính**: Vòng lặp 5 bước tuân thủ Style Enforcement Pipeline (context -> nháp draft.md -> check -> save). |
+| `/story-study` | `story-study` | **Học & Giải mã văn phong truyện mẫu**: Phân tích 5 trục từ thư mục, file hoặc dán nháp; tạo Style Fingerprint và Style Rules độc lập. |
 | `/story-outline` | `story-outline` | **Đề cương & Phục bút**: Hoạch định Arc, gợi ý 3 nhánh rẽ cốt truyện khi bí ý, theo dõi manh mối. |
 | `/story-deslop` | `story-deslop` | **Khử văn mẫu AI**: Loại bỏ câu từ sáo rỗng, áp dụng Show-Don't-Tell và chiều sâu giác quan. |
 | `/story-review` | `story-review` | **Thẩm định phản biện đa góc nhìn**: 3 vai độc giả khó tính soát lỗi Logic, Nhịp điệu, Nhân vật. |
