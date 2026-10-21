@@ -1,6 +1,7 @@
 """
 Module kiểm tra và chuẩn hóa chất lượng văn phong tiếng Việt (Vietnamese Anti-Slop & Punctuation Quality Gate).
 Thuần Python, không phụ thuộc thư viện ngoài, tối ưu token và kiểm tra an toàn không phá vỡ ngữ nghĩa.
+Tích hợp trực tiếp cơ chế .deslop-whitelist cục bộ (native Python).
 """
 
 import os
@@ -46,6 +47,59 @@ VIETNAMESE_SLOP_PATTERNS = [
         "suggestion": "Tả phản ứng cơ thể: nghẹn ở cổ họng, lồng ngực đập thình thịch"
     }
 ]
+
+
+def load_whitelist(target_file_or_dir):
+    """
+    Tải danh sách ngoại lệ (.deslop-whitelist) cục bộ từ thư mục chứa file
+    hoặc các thư mục cha (ví dụ thư mục truyện).
+    """
+    if not target_file_or_dir:
+        return []
+
+    path_obj = os.path.abspath(target_file_or_dir)
+    dir_path = path_obj if os.path.isdir(path_obj) else os.path.dirname(path_obj)
+
+    # Tìm .deslop-whitelist tại dir_path hoặc các cấp cha (tối đa 3 cấp)
+    curr = dir_path
+    for _ in range(3):
+        wl_path = os.path.join(curr, ".deslop-whitelist")
+        if os.path.exists(wl_path):
+            try:
+                with open(wl_path, "r", encoding="utf-8", errors="replace") as f:
+                    lines = [line.strip() for line in f.readlines()]
+                entries = [l for l in lines if l and not l.startswith("#")]
+                return sorted(entries, key=lambda x: len(x), reverse=True)
+            except Exception:
+                pass
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+
+    return []
+
+
+def mask_whitelist_spans(text, whitelist):
+    """
+    Ẩn các đoạn văn bản nằm trong danh sách whitelist để tránh regex bắt nhầm.
+    Thay thế bằng ký tự khoảng trắng có cùng độ dài để giữ nguyên vị trí index.
+    """
+    if not whitelist:
+        return text
+
+    masked = list(text)
+    lower_text = text.lower()
+
+    for item in whitelist:
+        target = item.lower()
+        idx = lower_text.find(target)
+        while idx != -1:
+            for i in range(idx, idx + len(target)):
+                masked[i] = " "
+            idx = lower_text.find(target, idx + len(target))
+
+    return "".join(masked)
 
 
 def check_punctuation(text):
@@ -97,13 +151,14 @@ def check_punctuation(text):
     return issues
 
 
-def check_ai_slop(text):
+def check_ai_slop(text, whitelist=None):
     """
     Quét các cụm từ sáo rỗng AI theo danh mục anti-slop.
-    Trả về danh sách các vi phạm phát hiện được.
+    Áp dụng whitelist nếu được cung cấp để bỏ qua các ngoại lệ chủ ý của tác giả.
     """
     findings = []
-    lower_text = text.lower()
+    scannable_text = mask_whitelist_spans(text, whitelist) if whitelist else text
+    lower_text = scannable_text.lower()
 
     for item in VIETNAMESE_SLOP_PATTERNS:
         matches = list(re.finditer(item["pattern"], lower_text))
@@ -113,7 +168,7 @@ def check_ai_slop(text):
                 end = min(len(text), m.end() + 30)
                 snippet = text[start:end].replace('\n', ' ')
                 findings.append({
-                    "matched_text": m.group(0),
+                    "matched_text": text[m.start():m.end()],
                     "snippet": f"...{snippet}...",
                     "description": item["description"],
                     "suggestion": item["suggestion"]
@@ -137,13 +192,15 @@ def normalize_punctuation_safe(text):
     return text
 
 
-def inspect_text(text):
+def inspect_text(text, target_path=None, whitelist=None):
     """
     Hàm tổng hợp kiểm tra toàn diện một văn bản nháp tiếng Việt.
+    Hỗ trợ tự động nạp .deslop-whitelist nếu target_path được cung cấp.
     """
     clean_text = text.lstrip('\ufeff')
+    wl = whitelist if whitelist is not None else load_whitelist(target_path)
     punc_issues = check_punctuation(clean_text)
-    slop_findings = check_ai_slop(clean_text)
+    slop_findings = check_ai_slop(clean_text, whitelist=wl)
 
     # Đếm số lượng từ/âm tiết
     words = [w for w in re.split(r'\s+', clean_text.strip()) if w]
@@ -154,6 +211,47 @@ def inspect_text(text):
         "word_count": word_count,
         "punctuation_issues": punc_issues,
         "slop_findings": slop_findings,
+        "whitelist_count": len(wl),
         "passed": not has_blocking,
         "has_warnings": len(punc_issues) > 0 or has_blocking
     }
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python vn_checker.py <filepath> [--normalize]")
+        sys.exit(0)
+
+    target_file = sys.argv[1]
+    do_normalize = "--normalize" in sys.argv
+
+    if not os.path.exists(target_file):
+        print(f"[ERROR] Không tìm thấy file: {target_file}")
+        sys.exit(1)
+
+    with open(target_file, "r", encoding="utf-8", errors="replace") as f:
+        content = f.read()
+
+    if do_normalize:
+        norm = normalize_punctuation_safe(content)
+        with open(target_file, "w", encoding="utf-8") as f:
+            f.write(norm)
+        print(f"✓ Đã chuẩn hóa dấu câu an toàn cho file: {target_file}")
+    else:
+        res = inspect_text(content, target_path=target_file)
+        print(f"=== KẾT QUẢ KIỂM TRA: {os.path.basename(target_file)} ({res['word_count']} chữ) ===")
+        if res['whitelist_count']:
+            print(f"  (Đã áp dụng {res['whitelist_count']} quy tắc ngoại lệ từ .deslop-whitelist)")
+        if res['slop_findings']:
+            print(f"  ❌ Phát hiện {len(res['slop_findings'])} cụm từ văn mẫu AI cấm kỵ:")
+            for s in res['slop_findings']:
+                print(f"     - '{s['matched_text']}': {s['description']}")
+                print(f"       Gợi ý: {s['suggestion']}")
+        else:
+            print("  ✓ Không phát hiện cụm từ văn mẫu AI nghiêm trọng.")
+
+        if res['punctuation_issues']:
+            print("  ⚠ Cảnh báo dấu câu:")
+            for p in res['punctuation_issues']:
+                print(f"     - {p['message']}")
+        sys.exit(0 if res['passed'] else 1)

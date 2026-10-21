@@ -126,8 +126,18 @@ class NarrativeMemoryEngine:
         summaries_dir = os.path.dirname(self.memory_dir)
         os.makedirs(summaries_dir, exist_ok=True)
 
+        header_notice = (
+            "> [!NOTE]\n"
+            "> **BẢN CHIẾU TỰ ĐỘNG TỪ BỘ NHỚ NARRATIVE MEMORY (summaries/memory/*.json)**\n"
+            "> Nguồn dữ liệu chuẩn (Single Source of Truth) là cơ sở dữ liệu JSON. "
+            "Để cập nhật dữ kiện, hãy sử dụng lệnh `python manage_story.py memory` hoặc chỉnh sửa trực tiếp tệp JSON tương ứng.\n\n"
+        )
+
         # 1. characters.md
-        chars_lines = ["# HỒ SƠ & TIẾN TRÌNH NHÂN VẬT (DYNAMIC CHARACTER STATES)\n"]
+        chars_lines = [
+            "# HỒ SƠ & TIẾN TRÌNH NHÂN VẬT (DYNAMIC CHARACTER STATES)\n",
+            header_notice
+        ]
         if not self.characters:
             chars_lines.append("_Chưa có nhân vật nào được ghi nhận._\n")
         else:
@@ -175,7 +185,10 @@ class NarrativeMemoryEngine:
             f.write("\n".join(chars_lines).strip() + "\n")
 
         # 2. timeline.md
-        tl_lines = ["# TRỤC THỜI GIAN SỰ KIỆN NHÂN QUẢ (CAUSAL TIMELINE)\n"]
+        tl_lines = [
+            "# TRỤC THỜI GIAN SỰ KIỆN NHÂN QUẢ (CAUSAL TIMELINE)\n",
+            header_notice
+        ]
         if not self.events:
             tl_lines.append("_Chưa có sự kiện nào trong timeline._\n")
         else:
@@ -198,7 +211,10 @@ class NarrativeMemoryEngine:
             f.write("\n".join(tl_lines).strip() + "\n")
 
         # 3. canon.md
-        canon_lines = ["# CHÂN LÝ THẾ GIỚI & QUY TẮC BẤT BIẾN (STORY CANON)\n"]
+        canon_lines = [
+            "# CHÂN LÝ THẾ GIỚI & QUY TẮC BẤT BIẾN (STORY CANON)\n",
+            header_notice
+        ]
         if not self.canon:
             canon_lines.append("_Chưa có dữ kiện Canon nào được ghi nhận._\n")
         else:

@@ -96,6 +96,31 @@ class TestP0DataIntegrity(unittest.TestCase):
             self.assertIn("CHƯƠNG 1–10", content)
             self.assertIn("Tóm tắt từ chương 1 đến 10.", content)
 
+    def test_native_vietnamese_checker_and_whitelist(self):
+        """Native vn_checker correctly detects slop and respects .deslop-whitelist."""
+        with isolated_workspace() as (ws, run_cli):
+            run_cli("init", "--title", "Test Truyện", "--id", "test-story")
+            draft_path = os.path.join(ws, "stories", "test-story", "chapters", "draft.md")
+
+            # Write slop into draft
+            with open(draft_path, "w", encoding="utf-8") as f:
+                f.write("/story-title Chương 1\n/story-brief Brief 1\nKhông thể phủ nhận rằng bầu không khí bỗng ngưng đọng lại.")
+
+            # Check without whitelist should fail
+            res1 = run_cli("check")
+            self.assertNotEqual(res1.returncode, 0)
+            self.assertIn("Phát hiện", res1.stdout)
+
+            # Create .deslop-whitelist
+            wl_path = os.path.join(ws, "stories", "test-story", ".deslop-whitelist")
+            with open(wl_path, "w", encoding="utf-8") as f:
+                f.write("Không thể phủ nhận rằng\nbầu không khí bỗng ngưng đọng lại\n")
+
+            # Check with whitelist should pass
+            res2 = run_cli("check")
+            self.assertEqual(res2.returncode, 0, f"Check failed despite whitelist: {res2.stderr or res2.stdout}")
+            self.assertIn("BẢN NHÁP ĐẠT TIÊU CHUẨN CHẤT LƯỢNG", res2.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

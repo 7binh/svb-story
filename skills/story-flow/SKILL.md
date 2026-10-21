@@ -1,136 +1,140 @@
 ---
 name: story-flow
-description: "Orchestrator điều phối toàn trình chu trình sáng tác StoryFlow (context → draft → quality check → save) dành cho AI Agent. Kích hoạt: /story-flow, 'viết toàn trình', 'quy trình toàn trình', 'tự hành viết truyện'."
+description: "Orchestrator điều phối sáng tác dài tập và tự hành toàn trình (End-to-End Novel Pipeline). Hỗ trợ cả chế độ tương tác (Interactive) và chế độ tự hành liên hoàn nhiều chương (Autonomous) với cơ chế chốt chặn chất lượng, kiểm định continuity và bảo vệ dữ liệu tuyệt đối. Kích hoạt: /story-flow, 'viết toàn trình', 'tự hành viết truyện', 'viết liên tiếp nhiều chương', 'chạy tự động story flow'."
 ---
 
-# /story-flow: Điều Phối Toàn Trình Sáng Tác Tự Hành (Orchestrator)
+# /story-flow: Điều Phối Toàn Trình Sáng Tác Dài Hạn (Orchestrator)
 
-Đóng vai trò là **Orchestrator toàn trình** liên kết các khâu sáng tác thành một chu trình liên tục khép kín, tối ưu hóa ngữ cảnh và đảm bảo an toàn dữ liệu tuyệt đối (không âm thầm ghi đè hay xóa bản nháp khi có lỗi).
+Đóng vai trò là **Tổng Điều Phối (Orchestrator)** cho tiểu thuyết dài tập, kết nối các khâu chuẩn bị ngữ cảnh, đề cương, phong cách, chấp bút, kiểm định continuity và cập nhật bộ nhớ thành một chu trình bền vững qua hàng chục hoặc hàng trăm chương.
 
-> **Phân định phạm vi:**
-> - Dùng `/story-write` khi tác giả muốn tương tác, duyệt và tinh chỉnh từng bước một.
-> - Dùng `/story-flow` khi muốn AI điều phối toàn bộ chu trình 5 bước theo mục tiêu chương đã định.
-
----
-
-## 🎯 NGUYÊN TẮC CỐT LÕI (Leading Words)
-
-1. **Tight-Context**: Chỉ nạp tóm tắt cuốn chiếu, brief các chương trung gian, và duy nhất chương $N$ liền trước.
-2. **Safe-Drafting**: Luôn tạo bản sao lưu trong `chapters/.draft_backups/` trước khi reset file nháp `draft.md`.
-3. **Style-Enforced**: Tự động áp dụng Style Profile đang active (ngắn/dài, giác quan, khẩu khí) và đối chiếu với [../../references/show-dont-tell.md](../../references/show-dont-tell.md).
-4. **Honest Quality Gate**: Phân biệt rõ kết quả kiểm tra tự động (`manage_story.py check`) với đánh giá định tính của AI; không bao giờ báo pass giả.
+> **Phân định rõ ràng với `/story-write`:**
+> - `/story-write`: Dành cho tác giả muốn đồng hành, duyệt chi tiết từng đoạn thoại và tinh chỉnh trực tiếp từng phân cảnh.
+> - `/story-flow`: Dành cho việc điều phối toàn trình một hoặc nhiều chương theo mục tiêu định sẵn, có cơ chế tự kiểm tra, tự sửa lỗi kỹ thuật và chỉ dừng lại xin ý kiến khi gặp ngã rẽ cốt truyện hoặc mâu thuẫn Canon nghiêm trọng.
 
 ---
 
-## 🔄 CHU TRÌNH ĐIỀU PHỐI 5 BƯỚC (END-TO-END PIPELINE)
+## 🧭 HAI CHẾ ĐỘ VẬN HÀNH (TWO OPERATING MODES)
 
-Hệ thống hỗ trợ 2 chế độ điều phối tùy theo môi trường tác nghiệp:
+### 1. Chế độ Tương Tác (Interactive Mode)
+- Phù hợp khi viết từng chương quan trọng, cao trào Arc, hoặc khi tác giả muốn xem xét kết quả sau mỗi chương trước khi tiếp tục.
+- Agent thực hiện chu trình: Nạp ngữ cảnh → Soạn thảo → Chạy audit → Báo cáo kết quả → Chờ tác giả xác nhận → Lưu và cập nhật Narrative Memory.
+
+### 2. Chế độ Tự Hành Nhiều Chương (Autonomous Mode)
+- Phù hợp khi tác giả đã duyệt đề cương cho một chặng (ví dụ: viết từ Chương 5 đến Chương 8) và cho phép AI tự hành trong phạm vi đã định.
+- **Chu trình lặp tự hành cho từng chương (Autonomous Loop):**
+  1. **Đọc trạng thái hiện tại:** Xác định chương cần viết tiếp theo $N$.
+  2. **Xác định mục tiêu chương:** Đọc mục tiêu chương $N$ từ `outline.md`.
+  3. **Nạp ngữ cảnh 5 lớp:** Đọc `summaries/characters.md`, `summaries/timeline.md`, `summaries/canon.md` và đoạn kết chương $N-1$.
+  4. **Chấp bút chương:** Viết nội dung hoàn chỉnh ra `chapters/chapter_XXXX.md`.
+  5. **Kiểm tra chất lượng & Continuity:**
+     ```powershell
+     python manage_story.py check --file chapters/chapter_XXXX.md
+     python manage_story.py memory --audit --file chapters/chapter_XXXX.md
+     ```
+  6. **Sửa chữa có kiểm soát:** Nếu phát hiện lỗi slop hoặc mâu thuẫn chấn thương/vật phẩm, tự sửa ngay trong file chương và kiểm tra lại.
+  7. **Cập nhật Narrative Memory:**
+     ```powershell
+     python manage_story.py memory --add-event --chapter N --title "[Tiêu đề]" --summary "[Tóm tắt diễn biến]"
+     ```
+  8. **Cập nhật tiến độ & lưu trạng thái:** Ghi nhận chương hoàn tất vào `story.json`.
+  9. **Chuyển sang chương tiếp theo:** Lặp lại bước 1 cho chương $N+1$ cho đến khi hoàn thành phạm vi được phép.
+- **Quy tắc Tạm dừng An toàn (Fail-Safe Break):**
+  Nếu gặp một mâu thuẫn nghiêm trọng (Critical Invariant) không thể giải quyết mà không thay đổi Canon, hoặc cần đưa ra quyết định ảnh hưởng lớn đến số phận nhân vật mà đề cương chưa định sẵn: **Tạm dừng ngay lập tức**, báo cáo tình trạng cho tác giả và chờ chỉ thị.
+
+---
+
+## 🔄 QUY TRÌNH ĐIỀU PHỐI 5 BƯỚC KHÉP KÍN
 
 ```mermaid
 flowchart TD
-    subgraph Mode1["Chế Độ 1: Native Markdown Direct (Agent IDE)"]
-        A1["Bước 1: Nạp Ngữ Cảnh (outline.md + summaries/*.md)"] --> B1["Bước 2: Hoạch Định Cốt Truyện"]
-        B1 --> C1["Bước 3: Viết Trực Tiếp (chapters/chapter_XXXX.md)"]
-        C1 --> D1["Bước 4: Kiểm Định Kép (check --file & memory --audit --file)"]
-        D1 -- "Có lỗi/Slop" --> E1["Chỉnh Sửa Trực Tiếp File Chương"]
-        E1 --> D1
-        D1 -- "Đạt Chuẩn" --> F1["Bước 5: Đồng Bộ Memory (memory --add-event)"]
-    end
-
-    subgraph Mode2["Chế Độ 2: CLI Staging (Author-CLI)"]
-        A2["Bước 1: python manage_story.py context"] --> B2["Bước 2: Chuẩn Bị Đề Cương"]
-        B2 --> C2["Bước 3: Soạn Thảo Nháp (chapters/draft.md)"]
-        C2 --> D2["Bước 4: Kiểm Định (check & memory --audit)"]
-        D2 -- "Có lỗi/Slop" --> E2["Sửa Trực Tiếp draft.md"]
-        E2 --> D2
-        D2 -- "Đạt Chuẩn" --> F2["Bước 5: Lưu & Backup (python manage_story.py save)"]
-    end
+    A["Bước 1: Nạp Ngữ Cảnh 5 Lớp & Trạng Thái Hiện Hành"] --> B["Bước 2: Hoạch Định Mạch Chương & Đề Cương"]
+    B --> C["Bước 3: Chấp Bút Bản Thảo (Prose Drafting)"]
+    C --> D["Bước 4: Chốt Chặn Kiểm Tra Kép (Check & Memory Audit)"]
+    D -- "Có lỗi kỹ thuật / Slop" --> E["Sửa Chữa Trực Tiếp Bản Thảo"]
+    E --> D
+    D -- "Đạt chuẩn" --> F["Bước 5: Lưu Trữ Nguyên Tử & Đồng Bộ Memory"]
+    F --> G{"Còn chương trong phạm vi cho phép?"}
+    G -- "Có (Autonomous Mode)" --> A
+    G -- "Không hoặc gặp ngã rẽ cốt truyện" --> H["Báo Cáo Tiến Độ & Hoàn Tất Phiên"]
 ```
 
 ### Bước 1: Nạp Ngữ Cảnh 5 Lớp & Kiểm Tra Trạng Thái
-- **Mode 1 (Native Markdown):** Agent đọc trực tiếp các file:
-  - `outline.md` (mục tiêu chương tiếp theo).
-  - `summaries/characters.md` (trạng thái nhân vật, chấn thương, vật phẩm).
-  - `summaries/timeline.md` (dòng sự kiện và di chứng gần nhất).
-  - `summaries/canon.md` (chân lý, quy tắc, bí mật, tranh chấp mở).
-- **Mode 2 (CLI Execution):**
+- Kiểm tra tiến độ tác phẩm:
   ```powershell
-  python manage_story.py context
+  python manage_story.py status
   ```
-- **Tiêu chuẩn hoàn tất:**
-  1. Nắm Lớp A (Mục tiêu chương $N+1$, quy tắc thế giới) & Lớp B (Sự kiện nhân quả, chấn thương, vật phẩm, bí mật).
-  2. Nắm Lớp C (Mâu thuẫn tranh chấp đang mở) & Lớp D (Style Profile rules & giới hạn suy luận).
-  3. Nắm Lớp E (Đoạn kết chương liền trước $N$ để bắt đúng mạch cảm xúc).
+- Nạp ngữ cảnh:
+  - Agent đọc trực tiếp: `summaries/outline.md`, `summaries/characters.md`, `summaries/timeline.md`, `summaries/canon.md`.
+  - Hoặc chạy lệnh tổng hợp:
+    ```powershell
+    python manage_story.py context
+    ```
+- **Xác thực 5 lớp:**
+  - Lớp A (Core): Mục tiêu chương tiếp theo và luật lệ thế giới.
+  - Lớp B (Memory): Chấn thương hiện tại, vật phẩm đang sở hữu, ma trận bí mật.
+  - Lớp C (Disputes): Các mâu thuẫn tranh chấp đang mở.
+  - Lớp D (Style): Style Profile active và các chỉ dẫn độ dài câu, giác quan.
+  - Lớp E (Recent): Đoạn kết của chương liền trước để bắt nhịp cảm xúc.
 
 ---
 
-### Bước 2: Hoạch Định Mạch Truyện & Đề Cương
-- Đối chiếu mục tiêu chương trong `outline.md`.
-- Nếu cần gợi ý hướng phát triển, tham khảo [../../references/plot-branching.md](../../references/plot-branching.md) theo 3 nhánh chuẩn: Action (Leo thang) / Emotion (Nội tâm) / Twist (Khúc quanh).
+### Bước 2: Hoạch Định Mạch Chương & Đối Chiếu Đề Cương
+- Đối chiếu mục tiêu cốt truyện trong `outline.md`.
+- Nếu có điểm nghẽn hoặc cần tình tiết rẽ nhánh, tham khảo [../../references/plot-branching.md](../../references/plot-branching.md) theo 3 nhánh chuẩn: Action (Leo thang) / Emotion (Lắng đọng) / Twist (Khúc quanh).
 
 ---
 
-### Bước 3: Soạn Thảo Bản Thảo (Drafting)
-- **Mode 1 (Native Markdown Direct):**
-  - Tạo file chương trực tiếp: `chapters/chapter_XXXX.md` (ví dụ `chapter_0005.md`).
-  - Định dạng đầu file:
+### Bước 3: Chấp Bút Bản Thảo (Drafting)
+- **Phương thức Native Markdown (Khuyến nghị cho Agent):**
+  - Tạo file chương: `chapters/chapter_XXXX.md` (ví dụ `chapter_0006.md`).
+  - Cấu trúc đầu file:
     ```markdown
     # Chương X: [Tên Chương]
     <!-- brief: Tóm tắt 1-2 câu sự kiện then chốt phục vụ load ngữ cảnh sau này -->
 
-    (Nội dung chương triển khai tại đây...)
+    (Nội dung văn xuôi triển khai từ Kế hoạch cảnh...)
     ```
-- **Mode 2 (CLI Staging):**
-  - Soạn thảo trực tiếp vào `chapters/draft.md` với cú pháp `/story-title` và `/story-brief`.
-- *Ràng buộc logic bất biến:* Giữ kín bí mật đối với các nhân vật chưa biết; duy trì chấn thương thể chất đã ghi nhận; không mâu thuẫn Canon.
+- **Phương thức Staging (Tác giả CLI):** Soạn vào `chapters/draft.md` với thẻ `/story-title` và `/story-brief`.
+- **Ràng buộc logic bất biến:** Giữ kín thông tin đối với nhân vật chưa biết; duy trì chấn thương thể chất chưa lành; không mâu thuẫn chân lý thế giới.
 
 ---
 
 ### Bước 4: Chốt Chặn Kiểm Tra Kép (Quality Gate & Continuity Audit)
-- **Mode 1 (Native File Execution):**
-  ```powershell
-  python manage_story.py check --file chapters/chapter_XXXX.md
-  python manage_story.py memory --audit --file chapters/chapter_XXXX.md
-  ```
-- **Mode 2 (Draft Execution):**
-  ```powershell
-  python manage_story.py check
-  python manage_story.py memory --audit
-  ```
-- **Kiểm tra tự động:**
-  - `check`: Quét lỗi dấu câu và cụm từ văn mẫu AI cấm kỵ qua module `vn_checker`.
-  - `memory --audit`: Kiểm tra lỗi rò rỉ bí mật, chấn thương bị bỏ quên, hoặc vật phẩm dịch chuyển bất hợp lý.
-- **Tự thẩm định văn phong:** Rà soát bản thảo theo 5 trục của Style Profile đang active. Phân biệt rõ lỗi Critical (bắt buộc sửa) với Artistic Choice (bảo toàn nguyên vẹn).
+- Chạy công cụ kiểm tra tự động:
+  - Nếu viết trực tiếp:
+    ```powershell
+    python manage_story.py check --file chapters/chapter_XXXX.md
+    python manage_story.py memory --audit --file chapters/chapter_XXXX.md
+    ```
+  - Nếu viết qua staging:
+    ```powershell
+    python manage_story.py check
+    python manage_story.py memory --audit
+    ```
+- **Đánh giá kết quả:**
+  - `check`: Phát hiện lỗi dấu câu và quét blacklist văn mẫu AI (tôn trọng `.deslop-whitelist`).
+  - `memory --audit`: Phát hiện rò rỉ bí mật, chấn thương bị quên lãng, vật phẩm dịch chuyển bất thường.
+  - Đánh giá văn phong: Rà soát theo 5 trục của Style Profile active. Phân biệt rõ lỗi Critical (bắt buộc sửa) với Artistic Choice (bảo toàn nguyên vẹn).
 
 ---
 
 ### Bước 5: Lưu Trữ Nguyên Tử & Cập Nhật Narrative Memory
-- **Mode 1 (Native Markdown):**
-  - Cập nhật sự kiện chương vào Narrative Memory:
+- **Nếu viết Native Markdown:**
+  - File chương đã nằm tại `chapters/chapter_XXXX.md`.
+  - Cập nhật sự kiện vào Narrative Memory:
     ```powershell
     python manage_story.py memory --add-event --chapter X --title "[Tên sự kiện]" --summary "[Tóm tắt sự kiện]"
     ```
-  - Khi thêm sự kiện, Narrative Memory Engine tự động cập nhật và xuất chiếu lại các file `summaries/characters.md`, `summaries/timeline.md`, và `summaries/canon.md`.
-- **Mode 2 (CLI Staging):**
+  - Narrative Memory Engine tự động tái xuất bản chiếu Markdown sang `summaries/characters.md`, `summaries/timeline.md`, và `summaries/canon.md`.
+- **Nếu viết qua Staging:**
   ```powershell
   python manage_story.py save
   ```
-  - Bản nháp cũ được tự động sao lưu tại `chapters/.draft_backups/draft_YYYYMMDD_HHMMSS.md`.
-  - Chương mới được ghi nguyên tử vào `chapters/chapter_XXXX.md`.
-  - Sự kiện chương mới được tự động ghi nhận vào Narrative Memory Timeline (`events.json`) và chiếu Markdown.
-  - File `draft.md` được reset về trắng an toàn.
-- **Xử lý sự cố:** Nếu có lỗi xảy ra, toàn bộ dữ liệu hiện hữu được giữ nguyên 100%, không ghi đè và Canon không bị suy chuyển.
-
----
-
-## 🛠️ BẢNG THAM CHIẾU LỆNH ĐIỀU PHỐI (CLI COMMANDS)
-
-| Lệnh CLI | Chức năng trong chu trình |
-|---|---|
-| `python manage_story.py context` | In toàn bộ ngữ cảnh tối ưu token cho chương tiếp theo |
-| `python manage_story.py check` | Chạy chốt chặn kiểm soát văn phong và lọc slop AI |
-| `python manage_story.py save` | Bóc tách nháp `draft.md`, sao lưu và lưu vào kho dữ liệu |
-| `python manage_story.py append-summary --from X --to Y --text "..."` | Nối tóm tắt mốc vào `rolling_summary.txt` |
-| `python manage_story.py style --list` | Tra cứu các profile văn phong (story & global) |
-| `python manage_story.py outline` | Hiển thị đề cương hiện tại |
-| `python manage_story.py foreshadow` | Liệt kê các manh mối và phục bút đang mở |
+  - Tự động sao lưu bản nháp vào `chapters/.draft_backups/`.
+  - Ghi nguyên tử chương mới vào `chapters/chapter_XXXX.md`.
+  - Cập nhật dòng sự kiện và reset `draft.md` an toàn.
+- **Báo cáo trung thực:** Kết thúc mỗi chương hoặc phiên làm việc, báo cáo rõ ràng:
+  * Chương đã hoàn thành và số từ thực tế.
+  * Các biến cố mới đã ghi nhận vào Memory.
+  * Các phục bút hoặc mâu thuẫn mới phát sinh (nếu có).
+  * Mục tiêu của chương tiếp theo.

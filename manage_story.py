@@ -499,6 +499,65 @@ def save_chapter_data(paths, title, content, summary="", force=False):
     return True
 
 
+def sync_chapters_from_disk(paths):
+    """
+    Tự động đồng bộ số chương và metadata từ các file chapters/chapter_XXXX.md
+    nếu tác giả hoặc agent sáng tác trực tiếp qua Native Markdown.
+    """
+    chapters_dir = paths.get('chapters_dir')
+    if not chapters_dir or not os.path.exists(chapters_dir):
+        return
+    chapter_files = sorted([
+        f for f in os.listdir(chapters_dir)
+        if re.match(r'^chapter_\d{4}\.md$', f)
+    ])
+    if not chapter_files:
+        return
+    max_num = max(int(f.split('_')[1].split('.')[0]) for f in chapter_files)
+    config = load_config(paths)
+    story = load_story(paths)
+    if 'chapters' not in story:
+        story['chapters'] = []
+
+    existing_nums = {ch.get('chapter_number') for ch in story['chapters']}
+    updated = False
+    for f in chapter_files:
+        n = int(f.split('_')[1].split('.')[0])
+        if n not in existing_nums:
+            fpath = os.path.join(chapters_dir, f)
+            title = f"Chương {n}"
+            summary = ""
+            try:
+                with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
+                    first_lines = [fp.readline() for _ in range(6)]
+                for line in first_lines:
+                    l = line.strip()
+                    if l.startswith('#'):
+                        title = l.lstrip('#').strip()
+                    elif '<!-- brief:' in l:
+                        summary = l.split('<!-- brief:')[1].split('-->')[0].strip()
+            except Exception:
+                pass
+            story['chapters'].append({
+                'chapter_number': n,
+                'title': title,
+                'file': fpath.replace('\\', '/'),
+                'summary': summary,
+                'created_at': get_current_time()
+            })
+            story['chapters'].sort(key=lambda x: x.get('chapter_number', 0))
+            updated = True
+
+    if config['current_chapter'] < max_num:
+        config['current_chapter'] = max_num
+        config['last_updated'] = get_current_time()
+        save_config(paths, config)
+        updated = True
+
+    if updated:
+        save_story(paths, story)
+
+
 # ─── INIT ─────────────────────────────────────────────────────────────────────
 def action_init(args):
     ensure_dir(STORIES_DIR)
@@ -885,6 +944,7 @@ def action_context(args):
         print("[ERROR] Chưa chọn truyện hoạt động. Hãy chạy lệnh 'select' hoặc 'init' trước.")
         sys.exit(1)
 
+    sync_chapters_from_disk(paths)
     config  = load_config(paths)
     current = config['current_chapter']
     next_n  = current + 1
@@ -1053,6 +1113,7 @@ def action_list(args):
     if not paths:
         print("[ERROR] Chưa chọn truyện hoạt động.")
         sys.exit(1)
+    sync_chapters_from_disk(paths)
     config = load_config(paths)
     story  = load_story(paths)
     chapters = story.get('chapters', [])
@@ -1073,6 +1134,7 @@ def action_status(args):
     if not paths:
         print("[ERROR] Chưa chọn truyện hoạt động.")
         sys.exit(1)
+    sync_chapters_from_disk(paths)
     config = load_config(paths)
     print("=== THÔNG TIN DỰ ÁN TRUYỆN ===")
     print(f"  Tên truyện : {config['title']}")
@@ -1105,9 +1167,17 @@ def action_check(args):
 
     # 1. Native Vietnamese Quality Check (Pure Python)
     import scripts.vn_checker as vnc
-    print("[1/2] Kiểm tra văn phong tiếng Việt & khử slop (Native Python)...")
-    vn_res = vnc.inspect_text(draft_content)
+    scripts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts')
+    pat_script  = os.path.join(scripts_dir, 'check-ai-patterns.js')
+    has_ext_checker = os.path.exists(pat_script)
+
+    step_prefix = "[1/2] " if has_ext_checker else "[KIỂM SOÁT] "
+    print(f"{step_prefix}Kiểm tra văn phong tiếng Việt & khử slop (Native Python)...")
+    vn_res = vnc.inspect_text(draft_content, target_path=target_file)
     has_blocking = False
+
+    if vn_res.get('whitelist_count'):
+        print(f"  ✓ Đã áp dụng {vn_res['whitelist_count']} quy tắc ngoại lệ từ .deslop-whitelist.")
 
     if vn_res['slop_findings']:
         has_blocking = True
