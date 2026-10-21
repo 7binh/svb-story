@@ -19,7 +19,8 @@ class TestSkillsIntegrity(unittest.TestCase):
             "story-review",
             "story-cover",
             "story-import",
-            "story-flow"
+            "story-flow",
+            "story-setup"
         ]
 
         for skill_name in expected_skills:

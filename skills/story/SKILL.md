@@ -13,6 +13,7 @@ description: "Trạm điều phối trung tâm cho hệ sinh thái viết truy�
 
 | Nhu cầu của bạn | Lệnh kích hoạt | Chức năng chính |
 |---|---|---|
+| **Khởi tạo & Cài đặt môi trường mới** | `/story-setup` | Tự động đồng bộ `manage_story.py`, scripts, references sau khi chạy `skills add`. |
 | **Viết chương mới tương tác từng bước** | `/story-write` | Viết từng chương có kiểm duyệt: context -> soạn nháp -> check -> save. |
 | **Điều phối toàn trình tự hành (Orchestrator)** | `/story-flow` | Chu trình toàn trình khép kín cho AI Agent: context -> draft -> quality gate -> save. |
 | **Học & Giải mã văn phong truyện mẫu** | `/story-study` | Phân tích 5 trục từ file, thư mục hoặc dán nháp; tạo Style Profile (story & global). |

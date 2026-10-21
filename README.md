@@ -4,12 +4,13 @@
 
 ---
 
-## 🧭 DANH SÁCH 9 SKILL CON TÍCH HỢP TRONG HỆ SINH THÁI
+## 🧭 DANH SÁCH 10 SKILL CON TÍCH HỢP TRONG HỆ SINH THÁI
 
-Khi bạn cài đặt repository này qua `npx skills add 7binh/svb-story`, bạn sẽ sở hữu trọn bộ 9 skill con tương ứng với các lệnh slash command chuyên biệt:
+Khi bạn cài đặt repository này qua `npx skills add 7binh/svb-story`, bạn sẽ sở hữu trọn bộ 10 skill con tương ứng với các lệnh slash command chuyên biệt:
 
 | Lệnh Slash Command | Tên Skill | Chức Năng Chính | Entrypoint CLI / File |
 |---|---|---|---|
+| `/story-setup` | `story-setup` | **Khởi tạo & Cài đặt môi trường**: Tự động tải `manage_story.py`, scripts, references sau khi add skills. | `scripts/setup_workspace.py` |
 | `/story` | `story` | **Trạm điều phối trung tâm (Router)**: Điều hướng yêu cầu, chuyển tác phẩm, tra cứu trạng thái. | `manage_story.py stories/select/init` |
 | `/story-write` | `story-write` | **Quy trình viết tương tác 5 bước**: Tuân thủ Style Enforcement Pipeline (context → draft → check → save). | `manage_story.py context/save/check` |
 | `/story-flow` | `story-flow` | **Điều phối toàn trình tự hành (Orchestrator)**: Chu trình tự hành khép kín cho AI Agent. | `manage_story.py` |
@@ -26,6 +27,7 @@ Khi bạn cài đặt repository này qua `npx skills add 7binh/svb-story`, bạ
 
 | Lệnh Slash Command | Cú pháp CLI tương ứng | Annotation trong `draft.md` | Tác vụ & Side Effects |
 |---|---|---|---|
+| `/story-setup` | `python scripts/setup_workspace.py` | Không áp dụng | Khởi tạo môi trường, kéo `manage_story.py`, scripts, references sau khi add skill. |
 | `/story` | `python manage_story.py stories`<br>`python manage_story.py select --id <slug>`<br>`python manage_story.py init --title "..."` | Không áp dụng | Khởi tạo, chọn hoặc xem danh mục tác phẩm. Cập nhật `active_story.json`. |
 | `/story-write` | `python manage_story.py context`<br>`python manage_story.py check`<br>`python manage_story.py save` | Dòng 1: `/story-title <Tên>`<br>Dòng 2: `/story-brief <Tóm tắt>` | Nạp ngữ cảnh, kiểm tra slop, sao lưu nháp vào `.draft_backups/`, lưu chương mới `chapter_XXXX.md`. |
 | `/story-study` | `python manage_story.py style --learn <path> [--profile <n>] [--scope story\|global]`<br>`python manage_story.py style --list`<br>`python manage_story.py style --set <n>` | Dòng 1: `/story-study [--profile <n>] [--scope story\|global]` | Bóc tách 5 trục văn phong, tạo `style_profile.json` và `STYLE_PROFILE.md`. Bảo toàn nguồn mẫu. |
@@ -60,7 +62,8 @@ story-flow/
 │   └── <global_profile_id>/
 │       ├── style_profile.json # Dữ liệu phân tích 5 trục (Schema 2.0.0)
 │       └── STYLE_PROFILE.md   # Quy tắc sáng tác & chỉ dẫn thực thi
-├── skills/                    # Bộ 9 Skills con tương thích npx skills add
+├── skills/                    # Bộ 10 Skills con tương thích npx skills add
+│   ├── story-setup/SKILL.md   # Khởi tạo & Đồng bộ công cụ thực thi
 │   ├── story/SKILL.md         # Router Skill điều phối
 │   ├── story-write/SKILL.md   # Quy trình viết 7 bước tương tác
 │   ├── story-flow/SKILL.md    # Orchestrator tự hành toàn trình
@@ -71,6 +74,7 @@ story-flow/
 │   ├── story-cover/SKILL.md   # Tạo prompt ảnh bìa tiểu thuyết AI
 │   └── story-import/SKILL.md  # Nghịch đảo truyện cũ nhiều chương
 ├── scripts/                   # Bộ công cụ kỹ thuật
+│   ├── setup_workspace.py     # Script tự động kéo mã nguồn về dự án mới
 │   ├── narrative_memory.py    # Narrative Memory Engine (Canon, Timeline, Character State, Secrets)
 │   ├── vn_checker.py          # Kiểm tra dấu câu & khử slop tiếng Việt (Native Python)
 │   ├── style_analyzer.py      # Module bóc tách 5 trục văn phong (Schema 2.0.0)
